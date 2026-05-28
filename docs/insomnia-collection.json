@@ -1,0 +1,444 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-05-28T00:00:00.000Z",
+  "__export_source": "insomnia.desktop.app:v2024.1.0",
+  "resources": [
+    {
+      "_id": "wrk_medalert",
+      "parentId": null,
+      "_type": "workspace",
+      "name": "MedAlert API",
+      "description": "Coleção completa de endpoints do MedAlert Backend",
+      "scope": "collection"
+    },
+    {
+      "_id": "env_base",
+      "parentId": "wrk_medalert",
+      "_type": "environment",
+      "name": "Local",
+      "data": {
+        "base_url": "http://localhost:8000/api/v1",
+        "access_token": "",
+        "refresh_token": "",
+        "user_id": "",
+        "paciente_id": "",
+        "medicamento_id": "",
+        "agenda_id": "",
+        "vinculo_id": "",
+        "registro_id": "",
+        "notificacao_id": ""
+      }
+    },
+    {
+      "_id": "fld_auth",
+      "parentId": "wrk_medalert",
+      "_type": "request_group",
+      "name": "Auth"
+    },
+    {
+      "_id": "fld_usuarios",
+      "parentId": "wrk_medalert",
+      "_type": "request_group",
+      "name": "Usuários"
+    },
+    {
+      "_id": "fld_vinculos",
+      "parentId": "wrk_medalert",
+      "_type": "request_group",
+      "name": "Vínculos"
+    },
+    {
+      "_id": "fld_categorias",
+      "parentId": "wrk_medalert",
+      "_type": "request_group",
+      "name": "Categorias"
+    },
+    {
+      "_id": "fld_medicamentos",
+      "parentId": "wrk_medalert",
+      "_type": "request_group",
+      "name": "Medicamentos"
+    },
+    {
+      "_id": "fld_agendas",
+      "parentId": "wrk_medalert",
+      "_type": "request_group",
+      "name": "Agendas"
+    },
+    {
+      "_id": "fld_registros",
+      "parentId": "wrk_medalert",
+      "_type": "request_group",
+      "name": "Registros de Tomada"
+    },
+    {
+      "_id": "fld_notificacoes",
+      "parentId": "wrk_medalert",
+      "_type": "request_group",
+      "name": "Notificações"
+    },
+    {
+      "_id": "req_login",
+      "parentId": "fld_auth",
+      "_type": "request",
+      "name": "Login",
+      "method": "POST",
+      "url": "{{ _.base_url }}/auth/login",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"responsavel@email.com\",\n  \"senha\": \"senha123\",\n  \"push_token\": \"fcm-token-exemplo\"\n}"
+      },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ]
+    },
+    {
+      "_id": "req_refresh",
+      "parentId": "fld_auth",
+      "_type": "request",
+      "name": "Refresh Token",
+      "method": "POST",
+      "url": "{{ _.base_url }}/auth/refresh",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"refresh_token\": \"{{ _.refresh_token }}\"\n}"
+      },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ]
+    },
+    {
+      "_id": "req_logout",
+      "parentId": "fld_auth",
+      "_type": "request",
+      "name": "Logout",
+      "method": "POST",
+      "url": "{{ _.base_url }}/auth/logout",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"refresh_token\": \"{{ _.refresh_token }}\"\n}"
+      },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_register_paciente",
+      "parentId": "fld_usuarios",
+      "_type": "request",
+      "name": "Cadastrar Paciente",
+      "method": "POST",
+      "url": "{{ _.base_url }}/usuarios",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nome\": \"João Silva\",\n  \"email\": \"joao.paciente@email.com\",\n  \"telefone\": \"11999999999\",\n  \"senha\": \"senha123\",\n  \"tipo\": \"PACIENTE\",\n  \"data_nascimento\": \"1955-03-15\",\n  \"obs_medicas\": \"Hipertensão, diabetes tipo 2\",\n  \"nivel_autonomia\": \"PARCIAL\"\n}"
+      },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ]
+    },
+    {
+      "_id": "req_register_responsavel",
+      "parentId": "fld_usuarios",
+      "_type": "request",
+      "name": "Cadastrar Responsável",
+      "method": "POST",
+      "url": "{{ _.base_url }}/usuarios",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nome\": \"Maria Silva\",\n  \"email\": \"responsavel@email.com\",\n  \"telefone\": \"11988888888\",\n  \"senha\": \"senha123\",\n  \"tipo\": \"RESPONSAVEL\",\n  \"grau_parentesco\": \"Filha\",\n  \"recebe_notificacoes\": true\n}"
+      },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ]
+    },
+    {
+      "_id": "req_register_cuidador",
+      "parentId": "fld_usuarios",
+      "_type": "request",
+      "name": "Cadastrar Cuidador",
+      "method": "POST",
+      "url": "{{ _.base_url }}/usuarios",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nome\": \"Ana Enfermeira\",\n  \"email\": \"cuidador@email.com\",\n  \"telefone\": \"11977777777\",\n  \"senha\": \"senha123\",\n  \"tipo\": \"CUIDADOR\",\n  \"grau_parentesco\": \"Cuidadora profissional\",\n  \"recebe_notificacoes\": true\n}"
+      },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ]
+    },
+    {
+      "_id": "req_get_me",
+      "parentId": "fld_usuarios",
+      "_type": "request",
+      "name": "Meu Perfil",
+      "method": "GET",
+      "url": "{{ _.base_url }}/usuarios/me",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_update_me",
+      "parentId": "fld_usuarios",
+      "_type": "request",
+      "name": "Atualizar Perfil",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/usuarios/me",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nome\": \"Maria Silva Santos\",\n  \"telefone\": \"11966666666\"\n}"
+      },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_update_push_token",
+      "parentId": "fld_usuarios",
+      "_type": "request",
+      "name": "Atualizar Push Token",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/usuarios/me/push-token",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"push_token\": \"novo-fcm-token-atualizado\"\n}"
+      },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_create_vinculo",
+      "parentId": "fld_vinculos",
+      "_type": "request",
+      "name": "Criar Vínculo",
+      "method": "POST",
+      "url": "{{ _.base_url }}/vinculos",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"paciente_id\": {{ _.paciente_id }}\n}"
+      },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_list_vinculos",
+      "parentId": "fld_vinculos",
+      "_type": "request",
+      "name": "Listar Vínculos",
+      "method": "GET",
+      "url": "{{ _.base_url }}/vinculos",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_delete_vinculo",
+      "parentId": "fld_vinculos",
+      "_type": "request",
+      "name": "Encerrar Vínculo",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/vinculos/{{ _.vinculo_id }}",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_list_categorias",
+      "parentId": "fld_categorias",
+      "_type": "request",
+      "name": "Listar Categorias",
+      "method": "GET",
+      "url": "{{ _.base_url }}/categorias",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_create_medicamento",
+      "parentId": "fld_medicamentos",
+      "_type": "request",
+      "name": "Cadastrar Medicamento",
+      "method": "POST",
+      "url": "{{ _.base_url }}/pacientes/{{ _.paciente_id }}/medicamentos",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nome\": \"Losartana\",\n  \"dosagem\": \"50mg\",\n  \"instrucoes\": \"Tomar 1 comprimido pela manhã em jejum com água\",\n  \"categoria_id\": 1,\n  \"uso_continuo\": true,\n  \"necessita_retorno\": true,\n  \"intervalo_retorno_dias\": 90,\n  \"data_inicio_tratamento\": \"2026-01-15\"\n}"
+      },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_list_medicamentos",
+      "parentId": "fld_medicamentos",
+      "_type": "request",
+      "name": "Listar Medicamentos do Paciente",
+      "method": "GET",
+      "url": "{{ _.base_url }}/pacientes/{{ _.paciente_id }}/medicamentos",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_update_medicamento",
+      "parentId": "fld_medicamentos",
+      "_type": "request",
+      "name": "Atualizar Medicamento",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/medicamentos/{{ _.medicamento_id }}",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nome\": \"Losartana Potássica\",\n  \"dosagem\": \"100mg\",\n  \"instrucoes\": \"Tomar 1 comprimido pela manhã e 1 à noite\"\n}"
+      },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_delete_medicamento",
+      "parentId": "fld_medicamentos",
+      "_type": "request",
+      "name": "Inativar Medicamento",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/medicamentos/{{ _.medicamento_id }}",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_create_agenda",
+      "parentId": "fld_agendas",
+      "_type": "request",
+      "name": "Criar Agenda (Diária)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/medicamentos/{{ _.medicamento_id }}/agendas",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"horario\": \"08:00\",\n  \"frequencia\": \"DIARIA\",\n  \"tolerancia_minutos\": 30,\n  \"data_inicio\": \"2026-01-15\"\n}"
+      },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_create_agenda_semanal",
+      "parentId": "fld_agendas",
+      "_type": "request",
+      "name": "Criar Agenda (Semanal)",
+      "method": "POST",
+      "url": "{{ _.base_url }}/medicamentos/{{ _.medicamento_id }}/agendas",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"horario\": \"20:00\",\n  \"frequencia\": \"SEMANAL\",\n  \"dias_semana\": \"1,3,5\",\n  \"tolerancia_minutos\": 30,\n  \"data_inicio\": \"2026-01-15\"\n}"
+      },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_list_agendas",
+      "parentId": "fld_agendas",
+      "_type": "request",
+      "name": "Listar Agendas do Medicamento",
+      "method": "GET",
+      "url": "{{ _.base_url }}/medicamentos/{{ _.medicamento_id }}/agendas",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_update_agenda",
+      "parentId": "fld_agendas",
+      "_type": "request",
+      "name": "Atualizar Agenda",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/agendas/{{ _.agenda_id }}",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"horario\": \"09:00\",\n  \"tolerancia_minutos\": 45\n}"
+      },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_delete_agenda",
+      "parentId": "fld_agendas",
+      "_type": "request",
+      "name": "Inativar Agenda",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/agendas/{{ _.agenda_id }}",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_list_registros",
+      "parentId": "fld_registros",
+      "_type": "request",
+      "name": "Listar Registros de Tomada",
+      "method": "GET",
+      "url": "{{ _.base_url }}/pacientes/{{ _.paciente_id }}/registros-tomada",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_list_registros_filtro",
+      "parentId": "fld_registros",
+      "_type": "request",
+      "name": "Listar Registros (com filtros)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/pacientes/{{ _.paciente_id }}/registros-tomada?data_inicio=2026-05-01&data_fim=2026-05-31&status=PENDENTE",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_confirmar_tomada",
+      "parentId": "fld_registros",
+      "_type": "request",
+      "name": "Confirmar Tomada",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/registros-tomada/{{ _.registro_id }}/confirmar",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_list_notificacoes",
+      "parentId": "fld_notificacoes",
+      "_type": "request",
+      "name": "Listar Notificações",
+      "method": "GET",
+      "url": "{{ _.base_url }}/notificacoes",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_marcar_lida",
+      "parentId": "fld_notificacoes",
+      "_type": "request",
+      "name": "Marcar Notificação como Lida",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/notificacoes/{{ _.notificacao_id }}/lida",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    }
+  ]
+}

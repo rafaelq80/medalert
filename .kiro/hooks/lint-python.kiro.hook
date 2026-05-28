@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "name": "Lint Python on Save",
+  "description": "Runs ruff check with auto-fix on saved Python files to catch lint issues early.",
+  "version": "1.0.0",
+  "when": {
+    "type": "fileEdited",
+    "patterns": [
+      "**/*.py"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Run ruff check on the saved file and fix all auto-fixable issues with ruff check --fix. Report any remaining issues that cannot be auto-fixed."
+  }
+}
