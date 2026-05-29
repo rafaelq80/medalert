@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { MainTabNavigator } from './MainTabNavigator';
+import { AdminNavigator } from './AdminNavigator';
 import { colors } from '../constants/colors';
 
 export type AuthStackParamList = {
@@ -15,6 +16,7 @@ export type AuthStackParamList = {
 export type RootStackParamList = {
   Auth: undefined;
   Main: undefined;
+  Admin: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -30,7 +32,7 @@ function AuthNavigator() {
 }
 
 export function AppNavigator() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -40,10 +42,16 @@ export function AppNavigator() {
     );
   }
 
+  const isAdmin = isAuthenticated && user?.tipo === 'ADMIN';
+
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       {isAuthenticated ? (
-        <Stack.Screen name="Main" component={MainTabNavigator} />
+        isAdmin ? (
+          <Stack.Screen name="Admin" component={AdminNavigator} />
+        ) : (
+          <Stack.Screen name="Main" component={MainTabNavigator} />
+        )
       ) : (
         <Stack.Screen name="Auth" component={AuthNavigator} />
       )}

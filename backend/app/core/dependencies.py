@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
 from app.core.security import decode_token
+from app.modules.usuarios.models import TipoUsuario, Usuario
 
 security_scheme = HTTPBearer()
 
@@ -51,3 +52,15 @@ async def get_current_user(
         )
 
     return user
+
+
+async def get_current_admin(
+    current_user: Usuario = Depends(get_current_user),
+) -> Usuario:
+    """Validate that the authenticated user is an ADMIN."""
+    if current_user.tipo != TipoUsuario.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso restrito a administradores",
+        )
+    return current_user

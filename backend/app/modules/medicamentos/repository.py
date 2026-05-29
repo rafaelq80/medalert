@@ -1,5 +1,6 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.modules.medicamentos.models import Categoria, Medicamento
 
@@ -10,13 +11,16 @@ async def create(data: dict, db: AsyncSession) -> Medicamento:
     db.add(medicamento)
     await db.commit()
     await db.refresh(medicamento)
-    return medicamento
+    # Reload with categoria relationship
+    return await get_by_id(medicamento.id, db)  # type: ignore[return-value]
 
 
 async def list_by_paciente(paciente_id: int, db: AsyncSession) -> list[Medicamento]:
     """List all active medicamentos for a given paciente."""
     result = await db.execute(
-        select(Medicamento).where(
+        select(Medicamento)
+        .options(selectinload(Medicamento.categoria))
+        .where(
             Medicamento.paciente_id == paciente_id,
             Medicamento.ativo == True,
         )
@@ -26,7 +30,11 @@ async def list_by_paciente(paciente_id: int, db: AsyncSession) -> list[Medicamen
 
 async def get_by_id(med_id: int, db: AsyncSession) -> Medicamento | None:
     """Find a medicamento by ID."""
-    result = await db.execute(select(Medicamento).where(Medicamento.id == med_id))
+    result = await db.execute(
+        select(Medicamento)
+        .options(selectinload(Medicamento.categoria))
+        .where(Medicamento.id == med_id)
+    )
     return result.scalar_one_or_none()
 
 
@@ -36,7 +44,8 @@ async def update(medicamento: Medicamento, data: dict, db: AsyncSession) -> Medi
         setattr(medicamento, key, value)
     await db.commit()
     await db.refresh(medicamento)
-    return medicamento
+    # Reload with categoria relationship
+    return await get_by_id(medicamento.id, db)  # type: ignore[return-value]
 
 
 async def deactivate(medicamento: Medicamento, db: AsyncSession) -> Medicamento:

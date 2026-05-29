@@ -1,6 +1,7 @@
 from datetime import date, datetime
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, model_validator
 
 
 class MedicamentoCreate(BaseModel):
@@ -30,6 +31,7 @@ class MedicamentoResponse(BaseModel):
     id: int
     paciente_id: int
     categoria_id: int | None = None
+    categoria_nome: str | None = None
     nome: str
     dosagem: str
     instrucoes: str
@@ -45,6 +47,16 @@ class MedicamentoResponse(BaseModel):
     criado_por: int
     atualizado_em: datetime | None = None
     atualizado_por: int | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def extract_nested_names(cls, data: Any) -> Any:
+        """Extract categoria.nome from the ORM relationship if already loaded."""
+        if hasattr(data, "__dict__") and "categoria" in data.__dict__:
+            cat = data.__dict__["categoria"]
+            if cat is not None:
+                object.__setattr__(data, "categoria_nome", cat.nome)
+        return data
 
 
 class CategoriaResponse(BaseModel):

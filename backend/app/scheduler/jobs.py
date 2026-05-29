@@ -2,25 +2,28 @@
 Scheduled jobs for MedAlert.
 All jobs create their own AsyncSession since they run outside request context.
 All jobs are wrapped in try/except to never crash the scheduler.
-All datetime operations use UTC.
 """
 
 import logging
 from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 
+from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 
 logger = logging.getLogger(__name__)
+LOCAL_TZ = ZoneInfo(settings.TIMEZONE)
 
 
 async def job_gerar_registros_tomada():
     """
     Runs every 5 minutes.
     Scans active agendas and creates REGISTRO_TOMADA with status=PENDENTE
-    for scheduled times within the next 5 minutes that don't have an existing record.
-    Creates NOTIFICACAO type=LEMBRETE and sends push notification to the patient.
+    for all scheduled times TODAY that don't have an existing record.
+    Creates NOTIFICACAO type=LEMBRETE and sends push notification to the patient
+    only when the scheduled time is within the next 5 minutes.
     """
     try:
         async with AsyncSessionLocal() as db:
@@ -33,8 +36,8 @@ async def job_gerar_registros_tomada():
             from app.push.helpers import lembrete_message
             from app.push.service import send_push
 
-            now = datetime.now(timezone.utc)
-            window_end = now + timedelta(minutes=5)
+            now = datetime.now(LOCAL_TZ)
+            notification_window_end = now + timedelta(minutes=5)
             today = now.date()
 
             # Find all active agendas where data_inicio <= today
@@ -56,14 +59,10 @@ async def job_gerar_registros_tomada():
                     if not _is_valid_day(agenda, today):
                         continue
 
-                    # Calculate the data_hora_prevista for today
+                    # Calculate the data_hora_prevista for today (local timezone)
                     data_hora_prevista = datetime.combine(
-                        today, agenda.horario, tzinfo=timezone.utc
+                        today, agenda.horario, tzinfo=LOCAL_TZ
                     )
-
-                    # Check if the scheduled time falls within the window [now, now+5min]
-                    if data_hora_prevista < now or data_hora_prevista > window_end:
-                        continue
 
                     # Check if registro already exists for this agenda and time
                     exists = await exists_for_agenda_time(
@@ -82,7 +81,7 @@ async def job_gerar_registros_tomada():
                     if medicamento is None or not medicamento.ativo:
                         continue
 
-                    # Create registro de tomada
+                    # Create registro de tomada for today
                     registro = RegistroTomada(
                         agenda_id=agenda.id,
                         paciente_id=medicamento.paciente_id,
@@ -92,35 +91,44 @@ async def job_gerar_registros_tomada():
                     db.add(registro)
                     await db.flush()
 
-                    # Create NOTIFICACAO type=LEMBRETE for the paciente
-                    notificacao = Notificacao(
-                        usuario_id=medicamento.paciente_id,
-                        registro_tomada_id=registro.id,
-                        tipo=TipoNotificacao.LEMBRETE,
-                        enviado_em=now,
+                    # Only send push notification if within the 5-min window
+                    should_notify = (
+                        data_hora_prevista >= now
+                        and data_hora_prevista <= notification_window_end
                     )
-                    db.add(notificacao)
+
+                    if should_notify:
+                        # Create NOTIFICACAO type=LEMBRETE for the paciente
+                        notificacao = Notificacao(
+                            usuario_id=medicamento.paciente_id,
+                            registro_tomada_id=registro.id,
+                            tipo=TipoNotificacao.LEMBRETE,
+                            enviado_em=now,
+                        )
+                        db.add(notificacao)
+
                     await db.commit()
 
-                    # Send push notification to paciente if push_token exists
-                    paciente_result = await db.execute(
-                        select(Usuario).where(Usuario.id == medicamento.paciente_id)
-                    )
-                    paciente = paciente_result.scalar_one_or_none()
-
-                    if paciente and paciente.push_token:
-                        horario_str = agenda.horario.strftime("%H:%M")
-                        title, body = lembrete_message(medicamento.nome, horario_str)
-                        await send_push(paciente.push_token, title, body)
-                    elif paciente and not paciente.push_token:
-                        logger.info(
-                            f"Paciente {paciente.id} has no push_token, "
-                            f"skipping push for agenda {agenda.id}"
+                    # Send push notification to paciente if within window
+                    if should_notify:
+                        paciente_result = await db.execute(
+                            select(Usuario).where(
+                                Usuario.id == medicamento.paciente_id
+                            )
                         )
+                        paciente = paciente_result.scalar_one_or_none()
+
+                        if paciente and paciente.push_token:
+                            horario_str = agenda.horario.strftime("%H:%M")
+                            title, body = lembrete_message(
+                                medicamento.nome, horario_str
+                            )
+                            await send_push(paciente.push_token, title, body)
 
                     logger.info(
                         f"Created registro_tomada for agenda {agenda.id} "
                         f"at {data_hora_prevista}"
+                        f"{' (with notification)' if should_notify else ''}"
                     )
 
                 except Exception as e:
@@ -153,7 +161,7 @@ async def job_verificar_atrasos():
             from app.push.helpers import falha_tomada_message
             from app.push.service import send_push
 
-            now = datetime.now(timezone.utc)
+            now = datetime.now(LOCAL_TZ)
 
             # Find pending registros joined with their agenda
             result = await db.execute(
@@ -274,7 +282,7 @@ async def job_marcar_ignorados():
         async with AsyncSessionLocal() as db:
             from app.modules.registros_tomada.models import RegistroTomada, StatusTomada
 
-            now = datetime.now(timezone.utc)
+            now = datetime.now(LOCAL_TZ)
             two_hours_ago = now - timedelta(hours=2)
 
             result = await db.execute(
@@ -326,7 +334,7 @@ async def job_alertas_retorno_medico():
             from app.push.helpers import retorno_medico_message
             from app.push.service import send_push
 
-            now = datetime.now(timezone.utc)
+            now = datetime.now(LOCAL_TZ)
             today = now.date()
             seven_days_ahead = today + timedelta(days=7)
 

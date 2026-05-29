@@ -72,3 +72,14 @@ class UsuarioUpdate(BaseModel):
 
 class PushTokenUpdate(BaseModel):
     push_token: str
+
+
+class UsuarioBuscaResponse(BaseModel):
+    """Response for patient search — exposes minimal data."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    nome: str
+    email: str
+    tipo: TipoUsuario

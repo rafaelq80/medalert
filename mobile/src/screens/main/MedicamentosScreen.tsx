@@ -6,70 +6,132 @@ import {
   RefreshControl,
   TouchableOpacity,
   Text,
-  Alert,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMedicamentos } from '../../hooks/useMedicamentos';
 import { MedicamentoCard } from '../../components/MedicamentoCard';
 import { EmptyState } from '../../components/EmptyState';
 import { ErrorState } from '../../components/ErrorState';
 import { LoadingState } from '../../components/LoadingState';
+import { SelectDropdown } from '../../components/SelectDropdown';
+import { Medicamento } from '../../types';
 import { colors } from '../../constants/colors';
 import { spacing } from '../../constants/typography';
+import { MedicamentosStackParamList } from '../../navigation/MedicamentosNavigator';
+
+type NavigationProp = NativeStackNavigationProp<MedicamentosStackParamList, 'MedicamentosList'>;
 
 export function MedicamentosScreen() {
+  const navigation = useNavigation<NavigationProp>();
   const {
     medicamentos,
+    pacienteId,
+    pacientes,
     isLoading,
     isRefreshing,
     error,
     handleRefresh,
     handleDelete,
+    handleSelectPaciente,
     retry,
   } = useMedicamentos();
 
   const handleAddMedicamento = useCallback(() => {
-    Alert.alert('Em breve', 'A tela de cadastro de medicamento será implementada em breve.');
-  }, []);
+    if (!pacienteId) return;
+    const paciente = pacientes.find((p) => p.id === pacienteId);
+    navigation.navigate('MedicamentoForm', {
+      pacienteId,
+      pacienteNome: paciente?.label,
+    });
+  }, [navigation, pacienteId, pacientes]);
 
-  if (isLoading) {
+  const handleEditMedicamento = useCallback(
+    (medicamento: Medicamento) => {
+      if (!pacienteId) return;
+      const paciente = pacientes.find((p) => p.id === pacienteId);
+      navigation.navigate('MedicamentoForm', {
+        pacienteId,
+        pacienteNome: paciente?.label,
+        medicamento,
+      });
+    },
+    [navigation, pacienteId, pacientes]
+  );
+
+  const handleManageAgendas = useCallback(
+    (medicamento: Medicamento) => {
+      navigation.navigate('AgendaForm', {
+        medicamentoId: medicamento.id,
+        medicamentoNome: medicamento.nome,
+      });
+    },
+    [navigation]
+  );
+
+  const insets = useSafeAreaInsets();
+
+  if (isLoading && pacientes.length === 0) {
     return <LoadingState label="Carregando medicamentos" />;
   }
 
-  if (error) {
+  if (error && pacientes.length === 0) {
     return <ErrorState message={error} onRetry={retry} />;
   }
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={medicamentos}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => (
-          <MedicamentoCard
-            medicamento={item}
-            onLongPress={() => handleDelete(item)}
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Patient selector — only shown when multiple vinculos */}
+      {pacientes.length > 1 && (
+        <View style={styles.pacienteSelectorContainer}>
+          <SelectDropdown
+            options={pacientes}
+            selectedId={pacienteId}
+            onSelect={handleSelectPaciente}
+            label="Paciente"
+            placeholder="Selecione o paciente"
           />
-        )}
-        contentContainerStyle={
-          medicamentos.length === 0 ? styles.emptyContainer : styles.listContent
-        }
-        ListEmptyComponent={
-          <EmptyState
-            emoji="💊"
-            title="Nenhum medicamento cadastrado"
-            subtitle="Adicione medicamentos para começar a gerenciar o tratamento."
-          />
-        }
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            colors={[colors.primaryContainer]}
-            tintColor={colors.primaryContainer}
-          />
-        }
-        accessibilityLabel="Lista de medicamentos"
-      />
+        </View>
+      )}
+
+      {isLoading ? (
+        <LoadingState label="Carregando medicamentos" />
+      ) : error ? (
+        <ErrorState message={error} onRetry={retry} />
+      ) : (
+        <FlatList
+          data={medicamentos}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <MedicamentoCard
+              medicamento={item}
+              onPress={() => handleEditMedicamento(item)}
+              onLongPress={() => handleDelete(item)}
+              onManageAgendas={() => handleManageAgendas(item)}
+            />
+          )}
+          contentContainerStyle={
+            medicamentos.length === 0 ? styles.emptyContainer : styles.listContent
+          }
+          ListEmptyComponent={
+            <EmptyState
+              emoji="💊"
+              title="Nenhum medicamento cadastrado"
+              subtitle="Adicione medicamentos para começar a gerenciar o tratamento."
+            />
+          }
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.primaryContainer]}
+              tintColor={colors.primaryContainer}
+            />
+          }
+          accessibilityLabel="Lista de medicamentos"
+        />
+      )}
 
       <TouchableOpacity
         style={styles.fab}
@@ -87,6 +149,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.backgroundApp,
+  },
+  pacienteSelectorContainer: {
+    paddingHorizontal: spacing.marginMobile,
+    paddingTop: 16,
+    paddingBottom: 12,
+    backgroundColor: colors.surfaceCard,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.outlineVariant,
   },
   listContent: {
     padding: spacing.marginMobile,

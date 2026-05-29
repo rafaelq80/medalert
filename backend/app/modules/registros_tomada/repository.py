@@ -1,8 +1,11 @@
 from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
+from app.core.timezone import LOCAL_TZ, now_local
 from app.modules.agendas.models import Agenda
 from app.modules.registros_tomada.models import RegistroTomada, StatusTomada
 
@@ -36,11 +39,11 @@ async def list_by_paciente(
 
     if data_inicio:
         query = query.where(
-            RegistroTomada.data_hora_prevista >= datetime.combine(data_inicio, datetime.min.time(), tzinfo=timezone.utc)
+            RegistroTomada.data_hora_prevista >= datetime.combine(data_inicio, datetime.min.time(), tzinfo=LOCAL_TZ)
         )
     if data_fim:
         query = query.where(
-            RegistroTomada.data_hora_prevista <= datetime.combine(data_fim, datetime.max.time(), tzinfo=timezone.utc)
+            RegistroTomada.data_hora_prevista <= datetime.combine(data_fim, datetime.max.time(), tzinfo=LOCAL_TZ)
         )
     if status_filter:
         query = query.where(RegistroTomada.status == status_filter)
@@ -91,7 +94,7 @@ async def get_overdue(db: AsyncSession) -> list[RegistroTomada]:
     Get registros with status PENDENTE where
     data_hora_prevista + tolerancia_minutos < now.
     """
-    now = datetime.now(timezone.utc)
+    now = now_local()
     result = await db.execute(
         select(RegistroTomada)
         .join(Agenda, RegistroTomada.agenda_id == Agenda.id)
@@ -109,7 +112,7 @@ async def get_stale_atrasados(db: AsyncSession) -> list[RegistroTomada]:
     """
     Get registros with status ATRASADO where data_hora_prevista + 2h < now.
     """
-    now = datetime.now(timezone.utc)
+    now = now_local()
     two_hours_ago = now - timedelta(hours=2)
     result = await db.execute(
         select(RegistroTomada).where(
@@ -125,7 +128,7 @@ async def confirm(
 ) -> RegistroTomada:
     """Confirm a registro de tomada."""
     registro.status = StatusTomada.CONFIRMADO
-    registro.data_hora_confirmacao = datetime.now(timezone.utc)
+    registro.data_hora_confirmacao = now_local()
     registro.usuario_confirmacao_id = user_id
     await db.commit()
     await db.refresh(registro)
@@ -135,11 +138,15 @@ async def confirm(
 async def exists_for_agenda_time(
     agenda_id: int, data_hora_prevista: datetime, db: AsyncSession
 ) -> bool:
-    """Check if a registro already exists for a given agenda and time."""
+    """Check if a registro already exists for a given agenda on the same date."""
+    from sqlalchemy import cast, Date as SADate
+
+    # Compare by agenda_id and date only (ignores timezone differences)
+    target_date = data_hora_prevista.date() if hasattr(data_hora_prevista, 'date') else data_hora_prevista
     result = await db.execute(
         select(RegistroTomada).where(
             RegistroTomada.agenda_id == agenda_id,
-            RegistroTomada.data_hora_prevista == data_hora_prevista,
+            cast(RegistroTomada.data_hora_prevista, SADate) == target_date,
         )
     )
     return result.scalar_one_or_none() is not None

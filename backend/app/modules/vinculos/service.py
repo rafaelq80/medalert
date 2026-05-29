@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,13 +14,18 @@ from app.modules.vinculos.repository import (
 )
 from app.modules.vinculos.schemas import VinculoCreate
 
+logger = logging.getLogger(__name__)
+
 
 async def create_vinculo(
     current_user: Usuario, vinculo_data: VinculoCreate, db: AsyncSession
 ) -> Vinculo:
     """Create a new vinculo after validating permissions and uniqueness."""
-    # Only RESPONSAVEL or CUIDADOR can create vinculos
-    if current_user.tipo not in (TipoUsuario.RESPONSAVEL, TipoUsuario.CUIDADOR):
+    # Admin can create vinculos between any users
+    if current_user.tipo == TipoUsuario.ADMIN:
+        logger.info(f"Admin {current_user.id} criando vínculo para paciente {vinculo_data.paciente_id}")
+    elif current_user.tipo not in (TipoUsuario.RESPONSAVEL, TipoUsuario.CUIDADOR):
+        # Only RESPONSAVEL or CUIDADOR can create vinculos
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Apenas responsáveis ou cuidadores podem criar vínculos",
@@ -53,6 +60,12 @@ async def delete_vinculo(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Vínculo não encontrado",
         )
+
+    # Admin bypasses ownership check
+    if current_user.tipo == TipoUsuario.ADMIN:
+        logger.info(f"Admin {current_user.id} removendo vínculo {vinculo_id}")
+        await deactivate(vinculo, db)
+        return
 
     # Verify ownership: user must be the responsavel or paciente
     if vinculo.responsavel_id != current_user.id and vinculo.paciente_id != current_user.id:

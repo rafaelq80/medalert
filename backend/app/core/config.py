@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
     FCM_SERVER_KEY: str = ""
+    TIMEZONE: str = "America/Sao_Paulo"
 
     # APNs configuration
     APNS_KEY_ID: str = ""

@@ -13,7 +13,7 @@ const pacienteSchema = baseSchema.extend({
     .string()
     .min(1, 'Data de nascimento é obrigatória')
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato deve ser AAAA-MM-DD'),
-  obs_medicas: z.string().optional(),
+  obs_medicas: z.string().min(1, 'Observações médicas são obrigatórias para pacientes'),
   nivel_autonomia: z.enum(['TOTAL', 'PARCIAL', 'DEPENDENTE'], {
     error: 'Nível de autonomia é obrigatório',
   }),

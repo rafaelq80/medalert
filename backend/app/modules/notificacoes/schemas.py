@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
@@ -12,5 +13,8 @@ class NotificacaoResponse(BaseModel):
     tipo: TipoNotificacao
     enviado_em: datetime
     lido_em: datetime | None = None
+    medicamento_nome: str | None = None
+    paciente_nome: str | None = None
+    horario_previsto: str | None = None
 
     model_config = ConfigDict(from_attributes=True)

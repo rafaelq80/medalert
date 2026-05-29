@@ -42,3 +42,16 @@ def retorno_medico_message(
         "Retorno médico próximo",
         f"Retorno para {medicamento_nome} em {data_retorno}",
     )
+
+
+def confirmacao_tomada_message(
+    paciente_nome: str, medicamento_nome: str, horario: str
+) -> tuple[str, str]:
+    """
+    Return (title, body) for confirmation notification.
+    Sent to responsáveis/cuidadores when a dose is confirmed by the paciente.
+    """
+    return (
+        "Tomada confirmada ✓",
+        f"{paciente_nome} confirmou {medicamento_nome} das {horario}",
+    )

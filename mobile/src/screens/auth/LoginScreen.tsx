@@ -1,47 +1,28 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator } from 'react-native';
+import React from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useAuth } from '../../contexts/AuthContext';
 import { colors } from '../../constants/colors';
 import { typography, spacing, borderRadius } from '../../constants/typography';
 import { AuthStackParamList } from '../../navigation/AppNavigator';
-import { loginSchema, LoginFormData } from '../../schemas/loginSchema';
 import { FormInput } from '../../components/FormInput';
+import { useLogin } from '../../hooks/useLogin';
 
 type LoginNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 export function LoginScreen() {
   const navigation = useNavigation<LoginNavigationProp>();
-  const { login } = useAuth();
-  const [loading, setLoading] = useState(false);
-
-  const { control, handleSubmit } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
-    mode: 'onBlur',
-    defaultValues: {
-      email: '',
-      senha: '',
-    },
-  });
-
-  const onSubmit = async (data: LoginFormData) => {
-    setLoading(true);
-    try {
-      await login(data.email.trim(), data.senha);
-    } catch {
-      Alert.alert('Erro', 'E-mail ou senha inválidos');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { control, handleSubmit, loading, onSubmit } = useLogin();
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>MedAlert</Text>
+        <Image
+          source={require('../../../assets/images/logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+          accessibilityLabel="Logo MedAlert"
+        />
         <Text style={styles.subtitle}>Controle de medicamentos</Text>
       </View>
 
@@ -101,9 +82,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
-  title: {
-    ...typography.headlineLg,
-    color: colors.primary,
+  logo: {
+    width: 160,
+    height: 160,
+    marginBottom: 16,
   },
   subtitle: {
     ...typography.bodyMd,

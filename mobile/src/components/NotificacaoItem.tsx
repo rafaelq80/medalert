@@ -1,9 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { format, parseISO } from 'date-fns';
 import { colors } from '../constants/colors';
 import { typography, spacing, borderRadius } from '../constants/typography';
 import { Notificacao, TipoNotificacao } from '../types';
+import { extractDateTime } from '../utils/dateUtils';
 
 interface NotificacaoItemProps {
   notificacao: Notificacao;
@@ -14,19 +14,37 @@ const NOTIFICATION_ICONS: Record<TipoNotificacao, string> = {
   LEMBRETE: '🔔',
   FALHA_TOMADA: '⚠️',
   RETORNO_MEDICO: '📅',
+  CONFIRMACAO: '✅',
 };
 
 const NOTIFICATION_MESSAGES: Record<TipoNotificacao, string> = {
   LEMBRETE: 'Lembrete de tomada de medicamento',
   FALHA_TOMADA: 'Falha na confirmação de tomada',
   RETORNO_MEDICO: 'Retorno médico se aproximando',
+  CONFIRMACAO: 'Tomada confirmada pelo paciente',
 };
 
 export function NotificacaoItem({ notificacao, onPress }: NotificacaoItemProps) {
   const isUnread = notificacao.lido_em === null || notificacao.lido_em === undefined;
   const icon = NOTIFICATION_ICONS[notificacao.tipo];
-  const message = NOTIFICATION_MESSAGES[notificacao.tipo];
-  const timestamp = format(parseISO(notificacao.enviado_em), 'dd/MM HH:mm');
+  const timestamp = extractDateTime(notificacao.enviado_em);
+
+  // Build contextual message
+  let message = NOTIFICATION_MESSAGES[notificacao.tipo];
+  if (notificacao.medicamento_nome) {
+    const pacienteInfo = notificacao.paciente_nome ? ` (${notificacao.paciente_nome})` : '';
+    const horarioInfo = notificacao.horario_previsto ? ` às ${notificacao.horario_previsto}` : '';
+
+    if (notificacao.tipo === 'LEMBRETE') {
+      message = `Hora de tomar ${notificacao.medicamento_nome}${horarioInfo}`;
+    } else if (notificacao.tipo === 'FALHA_TOMADA') {
+      message = `${notificacao.medicamento_nome}${horarioInfo} não foi confirmado${pacienteInfo}`;
+    } else if (notificacao.tipo === 'RETORNO_MEDICO') {
+      message = `Retorno médico: ${notificacao.medicamento_nome}${pacienteInfo}`;
+    } else if (notificacao.tipo === 'CONFIRMACAO') {
+      message = `${notificacao.paciente_nome || 'Paciente'} confirmou ${notificacao.medicamento_nome}${horarioInfo}`;
+    }
+  }
 
   return (
     <TouchableOpacity

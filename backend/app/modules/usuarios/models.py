@@ -11,6 +11,7 @@ class TipoUsuario(str, enum.Enum):
     PACIENTE = "PACIENTE"
     RESPONSAVEL = "RESPONSAVEL"
     CUIDADOR = "CUIDADOR"
+    ADMIN = "ADMIN"
 
 
 class NivelAutonomia(str, enum.Enum):

@@ -1,15 +1,16 @@
 import React, { useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, RefreshControl } from 'react-native';
-import { format, parseISO } from 'date-fns';
 import { useHistorico } from '../../hooks/useHistorico';
 import { PeriodSelector } from '../../components/PeriodSelector';
 import { AdherenceCard } from '../../components/AdherenceCard';
 import { EmptyState } from '../../components/EmptyState';
 import { ErrorState } from '../../components/ErrorState';
 import { LoadingState } from '../../components/LoadingState';
+import { SelectDropdown } from '../../components/SelectDropdown';
 import { colors } from '../../constants/colors';
 import { typography, spacing, borderRadius } from '../../constants/typography';
 import { RegistroTomada, StatusTomada } from '../../types';
+import { extractDateTime } from '../../utils/dateUtils';
 
 const STATUS_COLORS: Record<StatusTomada, string> = {
   PENDENTE: colors.statusPending,
@@ -29,6 +30,9 @@ export function HistoricoScreen() {
   const {
     registros,
     selectedPeriod,
+    pacienteNome,
+    pacientes,
+    selectedPacienteId,
     isLoading,
     isRefreshing,
     error,
@@ -38,11 +42,12 @@ export function HistoricoScreen() {
     totalCount,
     handleRefresh,
     handlePeriodChange,
+    handleSelectPaciente,
     retry,
   } = useHistorico();
 
   const renderItem = useCallback(({ item }: { item: RegistroTomada }) => {
-    const dateTime = format(parseISO(item.data_hora_prevista), 'dd/MM/yyyy HH:mm');
+    const dateTime = extractDateTime(item.data_hora_prevista);
     const statusColor = STATUS_COLORS[item.status];
 
     return (
@@ -73,6 +78,26 @@ export function HistoricoScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Patient selector for responsavel/cuidador with multiple vinculos */}
+      {pacientes.length > 1 && (
+        <View style={styles.pacienteSelectorContainer}>
+          <SelectDropdown
+            options={pacientes}
+            selectedId={selectedPacienteId}
+            onSelect={handleSelectPaciente}
+            label="Paciente"
+            placeholder="Selecione o paciente"
+          />
+        </View>
+      )}
+
+      {/* Single patient banner */}
+      {pacientes.length === 1 && pacienteNome && (
+        <View style={styles.pacienteBanner}>
+          <Text style={styles.pacienteBannerText}>📋 Histórico de {pacienteNome}</Text>
+        </View>
+      )}
+
       <PeriodSelector
         selectedPeriod={selectedPeriod}
         onPeriodChange={handlePeriodChange}
@@ -117,6 +142,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.backgroundApp,
+  },
+  pacienteBanner: {
+    backgroundColor: colors.surfaceContainerLow,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.marginMobile,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.outlineVariant,
+  },
+  pacienteBannerText: {
+    ...typography.labelLg,
+    color: colors.primary,
+  },
+  pacienteSelectorContainer: {
+    paddingHorizontal: spacing.marginMobile,
+    paddingVertical: 12,
+    backgroundColor: colors.surfaceCard,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.outlineVariant,
   },
   listContent: {
     padding: spacing.marginMobile,

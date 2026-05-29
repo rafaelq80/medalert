@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -13,15 +13,15 @@ import {
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { api } from '../../services/api';
+import { Controller } from 'react-hook-form';
 import { colors } from '../../constants/colors';
 import { typography, spacing, borderRadius } from '../../constants/typography';
 import { AuthStackParamList } from '../../navigation/AppNavigator';
 import { TipoUsuario, NivelAutonomia } from '../../types';
-import { registerSchema, RegisterFormData } from '../../schemas/registerSchema';
+import { RegisterFormData } from '../../schemas/registerSchema';
 import { FormInput } from '../../components/FormInput';
+import { DatePickerInput } from '../../components/DatePickerInput';
+import { useRegister } from '../../hooks/useRegister';
 
 type RegisterNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
 
@@ -39,90 +39,21 @@ const NIVEIS_AUTONOMIA: { label: string; value: NivelAutonomia }[] = [
 
 export function RegisterScreen() {
   const navigation = useNavigation<RegisterNavigationProp>();
-  const [loading, setLoading] = useState(false);
+  const {
+    control,
+    handleSubmit,
+    loading,
+    tipo,
+    handleTipoChange,
+    onSubmit,
+  } = useRegister();
 
-  const { control, handleSubmit, watch, setValue } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
-    mode: 'onBlur',
-    defaultValues: {
-      tipo: 'PACIENTE',
-      nome: '',
-      email: '',
-      senha: '',
-      telefone: '',
-      data_nascimento: '',
-      obs_medicas: '',
-      nivel_autonomia: 'TOTAL',
-    } as RegisterFormData,
-  });
-
-  const tipo = watch('tipo');
-
-  const handleTipoChange = (newTipo: TipoUsuario) => {
-    if (newTipo === 'PACIENTE') {
-      setValue('tipo', 'PACIENTE');
-      (setValue as (name: string, value: unknown) => void)('data_nascimento', '');
-      (setValue as (name: string, value: unknown) => void)('obs_medicas', '');
-      (setValue as (name: string, value: unknown) => void)('nivel_autonomia', 'TOTAL');
-    } else if (newTipo === 'RESPONSAVEL') {
-      setValue('tipo', 'RESPONSAVEL');
-      (setValue as (name: string, value: unknown) => void)('grau_parentesco', '');
-      (setValue as (name: string, value: unknown) => void)('recebe_notificacoes', true);
-    } else {
-      setValue('tipo', 'CUIDADOR');
-      (setValue as (name: string, value: unknown) => void)('grau_parentesco', '');
-      (setValue as (name: string, value: unknown) => void)('recebe_notificacoes', true);
-    }
-  };
-
-  const onSubmit = async (data: RegisterFormData) => {
-    setLoading(true);
-    try {
-      const payload: Record<string, unknown> = {
-        nome: data.nome.trim(),
-        email: data.email.trim(),
-        senha: data.senha,
-        tipo: data.tipo,
-      };
-
-      if (data.telefone?.trim()) {
-        payload.telefone = data.telefone.trim();
-      }
-
-      if (data.tipo === 'PACIENTE') {
-        payload.data_nascimento = data.data_nascimento.trim();
-        if (data.obs_medicas?.trim()) {
-          payload.obs_medicas = data.obs_medicas.trim();
-        }
-        payload.nivel_autonomia = data.nivel_autonomia;
-      }
-
-      if (data.tipo === 'RESPONSAVEL' || data.tipo === 'CUIDADOR') {
-        payload.grau_parentesco = data.grau_parentesco.trim();
-        payload.recebe_notificacoes = data.recebe_notificacoes;
-      }
-
-      await api.post('/usuarios', payload);
-
+  const handleFormSubmit = async (data: RegisterFormData) => {
+    const success = await onSubmit(data);
+    if (success) {
       Alert.alert('Sucesso', 'Conta criada com sucesso! Faça login para continuar.', [
         { text: 'OK', onPress: () => navigation.navigate('Login') },
       ]);
-    } catch (err: unknown) {
-      if (isAxiosError(err)) {
-        if (err.response?.status === 409) {
-          Alert.alert('Erro', 'E-mail já cadastrado');
-        } else if (err.response?.status === 422) {
-          const detail = err.response?.data?.detail;
-          const message = typeof detail === 'string' ? detail : 'Dados inválidos. Verifique os campos.';
-          Alert.alert('Erro de validação', message);
-        } else {
-          Alert.alert('Erro', 'Não foi possível criar a conta. Tente novamente.');
-        }
-      } else {
-        Alert.alert('Erro', 'Não foi possível criar a conta. Tente novamente.');
-      }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -203,18 +134,18 @@ export function RegisterScreen() {
         {/* Paciente-specific fields */}
         {tipo === 'PACIENTE' && (
           <>
-            <FormInput
+            <DatePickerInput
               control={control}
               name={'data_nascimento' as keyof RegisterFormData}
               label="Data de nascimento *"
-              placeholder="AAAA-MM-DD"
-              keyboardType="numbers-and-punctuation"
+              placeholder="Selecione sua data de nascimento"
+              maximumDate={new Date()}
             />
 
             <FormInput
               control={control}
               name={'obs_medicas' as keyof RegisterFormData}
-              label="Observações médicas"
+              label="Observações médicas *"
               placeholder="Alergias, condições, etc."
               multiline
               numberOfLines={3}
@@ -287,7 +218,7 @@ export function RegisterScreen() {
         {/* Submit button */}
         <TouchableOpacity
           style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleSubmit(onSubmit)}
+          onPress={handleSubmit(handleFormSubmit)}
           disabled={loading}
           accessibilityLabel="Cadastrar"
           accessibilityRole="button"
@@ -311,10 +242,6 @@ export function RegisterScreen() {
       </ScrollView>
     </KeyboardAvoidingView>
   );
-}
-
-function isAxiosError(error: unknown): error is { response?: { status?: number; data?: { detail?: string } } } {
-  return typeof error === 'object' && error !== null && 'response' in error;
 }
 
 const styles = StyleSheet.create({

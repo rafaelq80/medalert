@@ -1,8 +1,8 @@
-export type TipoUsuario = 'PACIENTE' | 'RESPONSAVEL' | 'CUIDADOR';
+export type TipoUsuario = 'PACIENTE' | 'RESPONSAVEL' | 'CUIDADOR' | 'ADMIN';
 export type NivelAutonomia = 'TOTAL' | 'PARCIAL' | 'DEPENDENTE';
 export type FrequenciaTomada = 'DIARIA' | 'SEMANAL' | 'PERSONALIZADA';
 export type StatusTomada = 'PENDENTE' | 'CONFIRMADO' | 'ATRASADO' | 'IGNORADO';
-export type TipoNotificacao = 'LEMBRETE' | 'FALHA_TOMADA' | 'RETORNO_MEDICO';
+export type TipoNotificacao = 'LEMBRETE' | 'FALHA_TOMADA' | 'RETORNO_MEDICO' | 'CONFIRMACAO';
 
 export interface Usuario {
   id: number;
@@ -23,6 +23,8 @@ export interface Vinculo {
   id: number;
   responsavel_id: number;
   paciente_id: number;
+  paciente_nome?: string;
+  paciente_email?: string;
   data_inicio: string;
   data_fim?: string;
   ativo: boolean;
@@ -32,6 +34,7 @@ export interface Medicamento {
   id: number;
   paciente_id: number;
   categoria_id?: number;
+  categoria_nome?: string;
   nome: string;
   dosagem: string;
   instrucoes: string;
@@ -70,6 +73,7 @@ export interface RegistroTomada {
   medicamento_nome?: string;
   medicamento_dosagem?: string;
   medicamento_instrucoes?: string;
+  tolerancia_minutos?: number;
 }
 
 export interface Notificacao {
@@ -79,6 +83,9 @@ export interface Notificacao {
   tipo: TipoNotificacao;
   enviado_em: string;
   lido_em?: string;
+  medicamento_nome?: string;
+  paciente_nome?: string;
+  horario_previsto?: string;
 }
 
 export interface TokenResponse {

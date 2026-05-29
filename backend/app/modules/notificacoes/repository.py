@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.timezone import LOCAL_TZ
 from app.modules.notificacoes.models import Notificacao, TipoNotificacao
 
 
@@ -35,7 +36,7 @@ async def get_by_id(notificacao_id: int, db: AsyncSession) -> Notificacao | None
 
 async def mark_as_read(notificacao: Notificacao, db: AsyncSession) -> Notificacao:
     """Mark a notificacao as read by setting lido_em to now (UTC)."""
-    notificacao.lido_em = datetime.now(timezone.utc)
+    notificacao.lido_em = datetime.now(LOCAL_TZ)
     await db.commit()
     await db.refresh(notificacao)
     return notificacao
@@ -51,7 +52,7 @@ async def get_recent_retorno_medico(
     from app.modules.medicamentos.models import Medicamento
     from app.modules.vinculos.models import Vinculo
 
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    cutoff = datetime.now(LOCAL_TZ) - timedelta(days=days)
 
     # Get the paciente_id for this medicamento
     med_result = await db.execute(

@@ -11,6 +11,7 @@ class TipoNotificacao(str, enum.Enum):
     LEMBRETE = "LEMBRETE"
     FALHA_TOMADA = "FALHA_TOMADA"
     RETORNO_MEDICO = "RETORNO_MEDICO"
+    CONFIRMACAO = "CONFIRMACAO"
 
 
 class Notificacao(Base):

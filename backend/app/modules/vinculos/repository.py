@@ -2,6 +2,7 @@ from datetime import date
 
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.modules.vinculos.models import Vinculo
 
@@ -16,8 +17,13 @@ async def create(responsavel_id: int, paciente_id: int, db: AsyncSession) -> Vin
     )
     db.add(vinculo)
     await db.commit()
-    await db.refresh(vinculo)
-    return vinculo
+    # Reload with paciente relationship
+    result = await db.execute(
+        select(Vinculo)
+        .options(selectinload(Vinculo.paciente))
+        .where(Vinculo.id == vinculo.id)
+    )
+    return result.scalar_one()
 
 
 async def get_active_by_pair(
@@ -37,7 +43,9 @@ async def get_active_by_pair(
 async def list_by_user(user_id: int, db: AsyncSession) -> list[Vinculo]:
     """List all active vinculos where user is either responsavel or paciente."""
     result = await db.execute(
-        select(Vinculo).where(
+        select(Vinculo)
+        .options(selectinload(Vinculo.paciente))
+        .where(
             or_(
                 Vinculo.responsavel_id == user_id,
                 Vinculo.paciente_id == user_id,

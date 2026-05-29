@@ -106,42 +106,92 @@ App mobile MedAlert em React Native (TypeScript) com Expo SDK 56 para Android 10
     - [x] 11.2 Garantir área de toque mínima de 48x48dp em todos os botões
     - [x] 11.3 Adicionar `accessibilityLabel` e `accessibilityRole` em todos os elementos interativos
 
-- [ ] 12. Refatoração: Extrair custom hooks das screens
+- [x] 12. Refatoração: Extrair custom hooks das screens
   - Separar lógica de negócio (fetch, state, handlers) das telas em custom hooks reutilizáveis.
   - Subtasks:
-    - [ ] 12.1 Criar `src/hooks/useAgenda.ts` — extrair fetch de registros do dia, handleConfirm com optimistic update, refresh
-    - [ ] 12.2 Criar `src/hooks/useMedicamentos.ts` — extrair fetch de medicamentos, handleDelete, pacienteId resolution via vínculos
-    - [ ] 12.3 Criar `src/hooks/useHistorico.ts` — extrair fetch por período, cálculo de adesão, seleção de período
-    - [ ] 12.4 Criar `src/hooks/useNotificacoes.ts` — extrair fetch, handleMarkAsRead, refresh
-    - [ ] 12.5 Refatorar `AgendaScreen.tsx` para usar `useAgenda()` — screen fica apenas com JSX/layout
-    - [ ] 12.6 Refatorar `MedicamentosScreen.tsx` para usar `useMedicamentos()`
-    - [ ] 12.7 Refatorar `HistoricoScreen.tsx` para usar `useHistorico()`
-    - [ ] 12.8 Refatorar `NotificacoesScreen.tsx` para usar `useNotificacoes()`
-  - Arquivos: `src/hooks/useAgenda.ts`, `src/hooks/useMedicamentos.ts`, `src/hooks/useHistorico.ts`, `src/hooks/useNotificacoes.ts`
+    - [x] 12.1 Criar `src/hooks/useAgenda.ts` — extrair fetch de registros do dia, handleConfirm com optimistic update, refresh
+    - [x] 12.2 Criar `src/hooks/useMedicamentos.ts` — extrair fetch de medicamentos, handleDelete, pacienteId resolution via vínculos
+    - [x] 12.3 Criar `src/hooks/useHistorico.ts` — extrair fetch por período, cálculo de adesão, seleção de período
+    - [x] 12.4 Criar `src/hooks/useNotificacoes.ts` — extrair fetch, handleMarkAsRead, refresh
+    - [x] 12.5 Refatorar `AgendaScreen.tsx` para usar `useAgenda()` — screen fica apenas com JSX/layout
+    - [x] 12.6 Refatorar `MedicamentosScreen.tsx` para usar `useMedicamentos()`
+    - [x] 12.7 Refatorar `HistoricoScreen.tsx` para usar `useHistorico()`
+    - [x] 12.8 Refatorar `NotificacoesScreen.tsx` para usar `useNotificacoes()`
+    - [x] 12.9 Criar `src/hooks/useLogin.ts` — extrair lógica de login (form, submit, loading)
+    - [x] 12.10 Criar `src/hooks/useRegister.ts` — extrair lógica de cadastro (form, tipo change, submit)
+    - [x] 12.11 Refatorar `LoginScreen.tsx` para usar `useLogin()`
+    - [x] 12.12 Refatorar `RegisterScreen.tsx` para usar `useRegister()`
+  - Arquivos: `src/hooks/useAgenda.ts`, `src/hooks/useMedicamentos.ts`, `src/hooks/useHistorico.ts`, `src/hooks/useNotificacoes.ts`, `src/hooks/useLogin.ts`, `src/hooks/useRegister.ts`
 
-- [ ] 13. Refatoração: Separar componentes de UI das screens
+- [x] 13. Refatoração: Separar componentes de UI das screens
   - Extrair componentes reutilizáveis para manter screens enxutas.
   - Subtasks:
-    - [ ] 13.1 Criar `src/components/PeriodSelector.tsx` — seletor de período reutilizável (usado em HistoricoScreen)
-    - [ ] 13.2 Criar `src/components/AdherenceCard.tsx` — card de percentual de adesão
-    - [ ] 13.3 Criar `src/components/NotificacaoItem.tsx` — extrair de NotificacoesScreen
-    - [ ] 13.4 Criar `src/components/MedicamentoCard.tsx` — extrair de MedicamentosScreen
-    - [ ] 13.5 Criar `src/components/EmptyState.tsx` — componente genérico de estado vazio (emoji + título + subtítulo)
-    - [ ] 13.6 Criar `src/components/ErrorState.tsx` — componente genérico de erro com botão retry
-    - [ ] 13.7 Criar `src/components/LoadingState.tsx` — ActivityIndicator centralizado
-  - Arquivos: `src/components/PeriodSelector.tsx`, `src/components/AdherenceCard.tsx`, `src/components/NotificacaoItem.tsx`, `src/components/MedicamentoCard.tsx`, `src/components/EmptyState.tsx`, `src/components/ErrorState.tsx`, `src/components/LoadingState.tsx`
+    - [x] 13.1 Criar `src/components/PeriodSelector.tsx` — seletor de período reutilizável (usado em HistoricoScreen)
+    - [x] 13.2 Criar `src/components/AdherenceCard.tsx` — card de percentual de adesão
+    - [x] 13.3 Criar `src/components/NotificacaoItem.tsx` — extrair de NotificacoesScreen
+    - [x] 13.4 Criar `src/components/MedicamentoCard.tsx` — extrair de MedicamentosScreen
+    - [x] 13.5 Criar `src/components/EmptyState.tsx` — componente genérico de estado vazio (emoji + título + subtítulo)
+    - [x] 13.6 Criar `src/components/ErrorState.tsx` — componente genérico de erro com botão retry
+    - [x] 13.7 Criar `src/components/LoadingState.tsx` — ActivityIndicator centralizado
+    - [x] 13.8 Criar `src/components/DatePickerInput.tsx` — date picker reutilizável com exibição DD/MM/AAAA
+  - Arquivos: `src/components/PeriodSelector.tsx`, `src/components/AdherenceCard.tsx`, `src/components/NotificacaoItem.tsx`, `src/components/MedicamentoCard.tsx`, `src/components/EmptyState.tsx`, `src/components/ErrorState.tsx`, `src/components/LoadingState.tsx`, `src/components/DatePickerInput.tsx`
 
-- [ ] 14. Validação de formulários com react-hook-form + zod
+- [x] 14. Validação de formulários com react-hook-form + zod
   - Adicionar validação robusta com feedback visual inline em todos os formulários.
   - Subtasks:
-    - [ ] 14.1 Instalar `react-hook-form`, `@hookform/resolvers`, `zod`
-    - [ ] 14.2 Criar `src/schemas/loginSchema.ts` — validação de email (formato) e senha (min 6 chars)
-    - [ ] 14.3 Criar `src/schemas/registerSchema.ts` — schema condicional por tipo de usuário com refinements (campos obrigatórios por tipo, formato de data, formato de email, telefone opcional)
-    - [ ] 14.4 Criar `src/components/FormInput.tsx` — componente de input reutilizável que integra com react-hook-form (Controller), exibe label, borda vermelha em erro, mensagem de erro abaixo do campo
-    - [ ] 14.5 Refatorar `LoginScreen.tsx` — usar `useForm` + `zodResolver` + `FormInput`, validação on blur, submit só quando válido
-    - [ ] 14.6 Refatorar `RegisterScreen.tsx` — usar `useForm` + `zodResolver` + `FormInput`, campos condicionais com `watch('tipo')`, validação on blur
-    - [ ] 14.7 Refatorar `MedicamentoFormScreen.tsx` — criar schema de medicamento (nome, dosagem, instrucoes obrigatórios, intervalo_retorno_dias obrigatório quando necessita_retorno=true)
-  - Arquivos: `src/schemas/loginSchema.ts`, `src/schemas/registerSchema.ts`, `src/components/FormInput.tsx`
+    - [x] 14.1 Instalar `react-hook-form`, `@hookform/resolvers`, `zod`
+    - [x] 14.2 Criar `src/schemas/loginSchema.ts` — validação de email (formato) e senha (min 6 chars)
+    - [x] 14.3 Criar `src/schemas/registerSchema.ts` — schema condicional por tipo de usuário com refinements (campos obrigatórios por tipo, formato de data, formato de email, telefone opcional)
+    - [x] 14.4 Criar `src/components/FormInput.tsx` — componente de input reutilizável que integra com react-hook-form (Controller), exibe label, borda vermelha em erro, mensagem de erro abaixo do campo
+    - [x] 14.5 Refatorar `LoginScreen.tsx` — usar `useForm` + `zodResolver` + `FormInput`, validação on blur, submit só quando válido
+    - [x] 14.6 Refatorar `RegisterScreen.tsx` — usar `useForm` + `zodResolver` + `FormInput`, campos condicionais com `watch('tipo')`, validação on blur
+    - [x] 14.7 Refatorar `MedicamentoFormScreen.tsx` — criar schema de medicamento (nome, dosagem, instrucoes obrigatórios, intervalo_retorno_dias obrigatório quando necessita_retorno=true)
+  - Arquivos: `src/schemas/loginSchema.ts`, `src/schemas/registerSchema.ts`, `src/schemas/medicamentoSchema.ts`, `src/components/FormInput.tsx`
+
+- [x] 15. Date Picker pt-BR + fix obs_medicas obrigatório no cadastro
+  - Substituir input de texto por date picker nativo e corrigir validação de obs_medicas.
+  - Subtasks:
+    - [x] 15.1 Instalar `@react-native-community/datetimepicker`
+    - [x] 15.2 Criar `src/components/DatePickerInput.tsx` — componente reutilizável com exibição DD/MM/AAAA
+    - [x] 15.3 Atualizar `RegisterScreen.tsx` — substituir TextInput de data_nascimento por DatePickerInput
+    - [x] 15.4 Atualizar `registerSchema.ts` — tornar `obs_medicas` obrigatório para PACIENTE (min 1 char)
+    - [x] 15.5 Atualizar payload do submit para sempre enviar obs_medicas
+  - Arquivos: `src/components/DatePickerInput.tsx`, `src/screens/auth/RegisterScreen.tsx`, `src/schemas/registerSchema.ts`
+
+- [x] 16. Tela de Vínculos (criar/listar/remover)
+  - Implementar CRUD de vínculos entre responsável/cuidador e paciente.
+  - Subtasks:
+    - [x] 16.1 Criar `src/hooks/useVinculos.ts` — fetch, create, delete de vínculos via API
+    - [x] 16.2 Criar `src/screens/main/VinculosScreen.tsx` — listagem com cards, form inline para criar, botão remover
+    - [x] 16.3 Adicionar tab "Vínculos" no MainTabNavigator para RESPONSAVEL e CUIDADOR
+  - Arquivos: `src/hooks/useVinculos.ts`, `src/screens/main/VinculosScreen.tsx`, `src/navigation/MainTabNavigator.tsx`
+
+- [x] 17. Formulário de Cadastro/Edição de Medicamentos (CRUD completo)
+  - Implementar formulário funcional com todos os campos do backend.
+  - Subtasks:
+    - [x] 17.1 Criar `src/schemas/medicamentoSchema.ts` — validação Zod para campos do medicamento
+    - [x] 17.2 Implementar `src/screens/main/MedicamentoFormScreen.tsx` — formulário completo com nome, dosagem, instruções, data início, categoria, uso contínuo, retorno médico
+    - [x] 17.3 Criar `src/navigation/MedicamentosNavigator.tsx` — stack navigator para empilhar lista → form → agendas
+    - [x] 17.4 Atualizar `MedicamentosScreen.tsx` — FAB navega ao form, toque no card abre edição, botão de agendas
+    - [x] 17.5 Atualizar `MedicamentoCard.tsx` — adicionar props onPress e onManageAgendas
+    - [x] 17.6 Integrar seleção de categorias via GET /categorias no formulário
+  - Arquivos: `src/schemas/medicamentoSchema.ts`, `src/screens/main/MedicamentoFormScreen.tsx`, `src/navigation/MedicamentosNavigator.tsx`, `src/screens/main/MedicamentosScreen.tsx`, `src/components/MedicamentoCard.tsx`
+
+- [x] 18. Tela de Agendas (criar horários de tomada)
+  - Implementar CRUD de agendas (horários) vinculadas a um medicamento.
+  - Subtasks:
+    - [x] 18.1 Criar `src/schemas/agendaSchema.ts` — validação para horário, frequência, dias_semana
+    - [x] 18.2 Criar `src/hooks/useAgendasCrud.ts` — fetch, create, delete de agendas via API
+    - [x] 18.3 Criar `src/screens/main/AgendaFormScreen.tsx` — time picker, seletor de frequência, chips de dias da semana, listagem de agendas existentes
+    - [x] 18.4 Registrar AgendaForm no MedicamentosNavigator
+  - Arquivos: `src/schemas/agendaSchema.ts`, `src/hooks/useAgendasCrud.ts`, `src/screens/main/AgendaFormScreen.tsx`, `src/navigation/MedicamentosNavigator.tsx`
+
+- [x] 19. Medicamentos visível para Cuidador
+  - Corrigir visibilidade da tab Remédios para incluir CUIDADOR além de RESPONSAVEL.
+  - Subtasks:
+    - [x] 19.1 Atualizar `MainTabNavigator.tsx` — exibir tab "Remédios" para RESPONSAVEL e CUIDADOR
+    - [x] 19.2 Usar MedicamentosNavigator (stack) em vez de MedicamentosScreen diretamente na tab
+  - Arquivos: `src/navigation/MainTabNavigator.tsx`
 
 ## Task Dependency Graph
 
@@ -157,7 +207,8 @@ App mobile MedAlert em React Native (TypeScript) com Expo SDK 56 para Android 10
     [11],
     [12],
     [13],
-    [14]
+    [14],
+    [15, 16, 17, 18, 19]
   ]
 }
 ```
@@ -166,6 +217,7 @@ App mobile MedAlert em React Native (TypeScript) com Expo SDK 56 para Android 10
 - Task 12: extrair custom hooks (depende de 11)
 - Task 13: extrair componentes de UI (depende de 12)
 - Task 14: validação de formulários com react-hook-form + zod (depende de 13)
+- Tasks 15-19: funcionalidades core faltantes (concluídas)
 
 ## Notes
 
@@ -174,5 +226,9 @@ App mobile MedAlert em React Native (TypeScript) com Expo SDK 56 para Android 10
 - `@react-native-firebase/messaging` foi substituído por `expo-notifications`.
 - `@react-navigation/stack` foi substituído por `@react-navigation/native-stack`.
 - Timestamps da API estão em UTC e são convertidos para fuso local com `date-fns`.
-- A tab "Remédios" só aparece para usuários do tipo RESPONSAVEL.
-- A tab "Agenda" só aparece para PACIENTE e CUIDADOR.
+- A tab "Remédios" aparece para usuários do tipo RESPONSAVEL e CUIDADOR.
+- A tab "Agenda" aparece para PACIENTE e CUIDADOR.
+- A tab "Vínculos" aparece para RESPONSAVEL e CUIDADOR.
+- O campo `obs_medicas` é obrigatório para PACIENTE (alinhado com backend).
+- O campo `data_nascimento` usa DatePicker nativo com exibição DD/MM/AAAA.
+- Medicamentos usa stack navigator (MedicamentosNavigator) para empilhar lista → form → agendas.

@@ -6,10 +6,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { format, parseISO } from 'date-fns';
 import { colors } from '../constants/colors';
 import { typography, spacing, borderRadius } from '../constants/typography';
 import { RegistroTomada, StatusTomada } from '../types';
+import { extractTime } from '../utils/dateUtils';
 
 interface RegistroTomadaCardProps {
   registro: RegistroTomada;
@@ -37,10 +37,15 @@ export function RegistroTomadaCard({
   isConfirming = false,
 }: RegistroTomadaCardProps) {
   const statusColor = STATUS_COLORS[registro.status];
-  const canConfirm = registro.status === 'PENDENTE' || registro.status === 'ATRASADO';
   const isAtrasado = registro.status === 'ATRASADO';
 
-  const scheduledTime = format(parseISO(registro.data_hora_prevista), 'HH:mm');
+  const scheduledTime = extractTime(registro.data_hora_prevista);
+
+  // Determine if confirm button should be shown
+  // If status is PENDENTE or ATRASADO, always allow confirmation attempt
+  // The backend validates the tolerance window and rejects if expired
+  const isPending = registro.status === 'PENDENTE' || registro.status === 'ATRASADO';
+  const canConfirm = isPending;
 
   return (
     <View

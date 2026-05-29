@@ -1,8 +1,10 @@
+import logging
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.timezone import now_local
 from app.modules.medicamentos.models import Medicamento
 from app.modules.medicamentos.repository import (
     create,
@@ -12,14 +14,21 @@ from app.modules.medicamentos.repository import (
     update,
 )
 from app.modules.medicamentos.schemas import MedicamentoCreate, MedicamentoUpdate
-from app.modules.usuarios.models import Usuario
+from app.modules.usuarios.models import TipoUsuario, Usuario
 from app.modules.vinculos.repository import has_active_vinculo
+
+logger = logging.getLogger(__name__)
 
 
 async def _verify_access_to_paciente(
     current_user: Usuario, paciente_id: int, db: AsyncSession
 ) -> None:
     """Verify that the current user has access to the paciente's data."""
+    # Admin bypasses all vinculo checks
+    if current_user.tipo == TipoUsuario.ADMIN:
+        logger.info(f"Admin {current_user.id} acessando dados do paciente {paciente_id}")
+        return
+
     # User is the paciente themselves
     if current_user.id == paciente_id:
         return
@@ -81,7 +90,7 @@ async def update_medicamento(
     await _verify_access_to_paciente(current_user, medicamento.paciente_id, db)
 
     update_data = data.model_dump(exclude_unset=True)
-    update_data["atualizado_em"] = datetime.now(timezone.utc)
+    update_data["atualizado_em"] = now_local()
     update_data["atualizado_por"] = current_user.id
 
     return await update(medicamento, update_data, db)

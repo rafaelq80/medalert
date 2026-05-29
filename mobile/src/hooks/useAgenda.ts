@@ -1,57 +1,107 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
-import { format, parseISO, isToday } from 'date-fns';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { RegistroTomada } from '../types';
+import { RegistroTomada, Vinculo } from '../types';
+
+export interface PacienteOption {
+  id: number;
+  label: string;
+}
 
 export interface UseAgendaReturn {
   registros: RegistroTomada[];
+  pacienteNome: string | null;
+  pacientes: PacienteOption[];
+  selectedPacienteId: number | null;
   isLoading: boolean;
   isRefreshing: boolean;
   error: string | null;
   confirmingId: number | null;
   handleRefresh: () => void;
   handleConfirm: (registroId: number) => void;
+  handleSelectPaciente: (id: number) => void;
   retry: () => void;
 }
 
 export function useAgenda(): UseAgendaReturn {
   const { user } = useAuth();
   const [registros, setRegistros] = useState<RegistroTomada[]>([]);
+  const [pacienteNome, setPacienteNome] = useState<string | null>(null);
+  const [pacientes, setPacientes] = useState<PacienteOption[]>([]);
+  const [selectedPacienteId, setSelectedPacienteId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmingId, setConfirmingId] = useState<number | null>(null);
+  const selectedIdRef = useRef<number | null>(null);
+
+  const fetchRegistrosForPaciente = useCallback(async (pacienteId: number) => {
+    const today = new Date().toISOString().split('T')[0];
+    const { data } = await api.get<{ registros: RegistroTomada[] }>(
+      `/pacientes/${pacienteId}/registros-tomada`,
+      { params: { data_inicio: today, data_fim: today } }
+    );
+
+    const sortedRegistros = data.registros.sort(
+      (a, b) =>
+        new Date(a.data_hora_prevista).getTime() -
+        new Date(b.data_hora_prevista).getTime()
+    );
+
+    setRegistros(sortedRegistros);
+  }, []);
 
   const fetchRegistros = useCallback(async () => {
     if (!user) return;
 
     try {
       setError(null);
-      const today = format(new Date(), 'yyyy-MM-dd');
-      const { data } = await api.get<{ registros: RegistroTomada[] }>(
-        `/pacientes/${user.id}/registros-tomada`,
-        { params: { data_inicio: today, data_fim: today } }
-      );
 
-      const todayRegistros = data.registros
-        .filter((r) => isToday(parseISO(r.data_hora_prevista)))
-        .sort(
-          (a, b) =>
-            new Date(a.data_hora_prevista).getTime() -
-            new Date(b.data_hora_prevista).getTime()
-        );
+      if (user.tipo === 'PACIENTE') {
+        selectedIdRef.current = user.id;
+        setSelectedPacienteId(user.id);
+        setPacientes([]);
+        setPacienteNome(null);
+        await fetchRegistrosForPaciente(user.id);
+      } else {
+        // Cuidador/Responsável — buscar pacientes vinculados
+        const { data: vinculos } = await api.get<Vinculo[]>('/vinculos');
+        const activeVinculos = vinculos.filter((v) => v.ativo);
 
-      setRegistros(todayRegistros);
+        if (activeVinculos.length === 0) {
+          setRegistros([]);
+          setPacientes([]);
+          setPacienteNome(null);
+          setSelectedPacienteId(null);
+          selectedIdRef.current = null;
+          return;
+        }
+
+        const options: PacienteOption[] = activeVinculos.map((v) => ({
+          id: v.paciente_id,
+          label: v.paciente_nome || `Paciente #${v.paciente_id}`,
+        }));
+        setPacientes(options);
+
+        const currentValid = selectedIdRef.current && options.some((o) => o.id === selectedIdRef.current);
+        const targetId = currentValid ? selectedIdRef.current! : options[0].id;
+        selectedIdRef.current = targetId;
+        setSelectedPacienteId(targetId);
+
+        const selected = options.find((o) => o.id === targetId);
+        setPacienteNome(selected?.label || null);
+
+        await fetchRegistrosForPaciente(targetId);
+      }
     } catch {
       setError('Não foi possível carregar a agenda. Tente novamente.');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [user]);
+  }, [user, fetchRegistrosForPaciente]);
 
   useFocusEffect(
     useCallback(() => {
@@ -59,6 +109,21 @@ export function useAgenda(): UseAgendaReturn {
       fetchRegistros();
     }, [fetchRegistros])
   );
+
+  const handleSelectPaciente = useCallback(async (id: number) => {
+    selectedIdRef.current = id;
+    setSelectedPacienteId(id);
+    const selected = pacientes.find((p) => p.id === id);
+    setPacienteNome(selected?.label || null);
+    setIsLoading(true);
+    try {
+      await fetchRegistrosForPaciente(id);
+    } catch {
+      setError('Não foi possível carregar a agenda.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [pacientes, fetchRegistrosForPaciente]);
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
@@ -72,7 +137,6 @@ export function useAgenda(): UseAgendaReturn {
       const originalRegistro = registros.find((r) => r.id === registroId);
       const originalStatus = originalRegistro?.status;
 
-      // Optimistic update
       setRegistros((prev) =>
         prev.map((r) =>
           r.id === registroId
@@ -84,7 +148,6 @@ export function useAgenda(): UseAgendaReturn {
       try {
         await api.put(`/registros-tomada/${registroId}/confirmar`);
       } catch {
-        // Rollback on failure
         setRegistros((prev) =>
           prev.map((r) =>
             r.id === registroId
@@ -110,12 +173,16 @@ export function useAgenda(): UseAgendaReturn {
 
   return {
     registros,
+    pacienteNome,
+    pacientes,
+    selectedPacienteId,
     isLoading,
     isRefreshing,
     error,
     confirmingId,
     handleRefresh,
     handleConfirm,
+    handleSelectPaciente,
     retry,
   };
 }
