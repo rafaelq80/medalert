@@ -139,6 +139,17 @@ Todos os endpoints exigem `Authorization: Bearer <token>` exceto `/api/v1/auth/*
 | Registros | PUT | `/api/v1/registros-tomada/{id}/confirmar` | Confirmar tomada |
 | Notificações | GET | `/api/v1/notificacoes` | Listar notificações |
 | Notificações | PUT | `/api/v1/notificacoes/{id}/lida` | Marcar como lida |
+| Admin | GET | `/api/v1/admin/usuarios` | Listar usuários (paginado, filtros) |
+| Admin | GET | `/api/v1/admin/usuarios/{id}` | Detalhes de um usuário |
+| Admin | PATCH | `/api/v1/admin/usuarios/{id}/ativar` | Ativar usuário |
+| Admin | PATCH | `/api/v1/admin/usuarios/{id}/desativar` | Desativar usuário |
+| Admin | PATCH | `/api/v1/admin/usuarios/{id}/tipo` | Alterar tipo do usuário |
+| Admin | POST | `/api/v1/admin/usuarios/{id}/forcar-logout` | Revogar tokens do usuário |
+| Admin | GET | `/api/v1/admin/metricas` | Métricas agregadas do sistema |
+| Admin | POST | `/api/v1/admin/categorias` | Criar categoria |
+| Admin | PUT | `/api/v1/admin/categorias/{id}` | Atualizar categoria |
+| Admin | DELETE | `/api/v1/admin/categorias/{id}` | Excluir categoria |
+| Admin | POST | `/api/v1/admin/scheduler/gerar-registros` | Disparar geração de registros |
 
 ### Respostas de erro
 
@@ -146,10 +157,11 @@ Formato padrão: `{ "detail": "mensagem" }`
 
 | Status | Cenário |
 |--------|---------|
+| 400 | Admin tentando agir sobre si mesmo (desativar, alterar tipo, revogar tokens) |
 | 401 | Token inválido ou ausente |
-| 403 | Sem permissão (sem vínculo ativo) |
+| 403 | Sem permissão (sem vínculo ativo ou não é ADMIN) |
 | 404 | Recurso não encontrado |
-| 409 | Conflito (e-mail duplicado, vínculo já existe) |
+| 409 | Conflito (e-mail duplicado, vínculo já existe, categoria duplicada, categoria com medicamentos) |
 | 422 | Validação de campos |
 
 ## Jobs automáticos (Scheduler)
@@ -185,7 +197,8 @@ backend/
 │   │   ├── medicamentos/    # Medicamentos e categorias
 │   │   ├── agendas/         # Agendas de tomada
 │   │   ├── registros_tomada/# Registros e confirmação
-│   │   └── notificacoes/    # Notificações
+│   │   ├── notificacoes/    # Notificações
+│   │   └── admin/           # Painel admin (usuários, categorias, métricas, tokens)
 │   ├── scheduler/
 │   │   ├── setup.py         # Configuração APScheduler
 │   │   └── jobs.py          # Jobs automáticos
@@ -205,8 +218,10 @@ backend/
 
 ## Convenções
 
-- **Soft delete**: registros nunca são deletados fisicamente (`ativo = FALSE`)
+- **Soft delete**: registros nunca são deletados fisicamente (`ativo = FALSE`), exceto categorias (hard delete por decisão de design)
 - **Timestamps**: sempre em UTC no banco; conversão para fuso local no cliente
 - **Senhas**: hash bcrypt obrigatório
-- **Auditoria**: alterações em medicamentos registram `atualizado_em` e `atualizado_por`
+- **Auditoria**: alterações em medicamentos registram `atualizado_em` e `atualizado_por`; ações admin que ignoram controle de acesso são logadas com o ID do admin
 - **Nomenclatura**: tabelas em snake_case português
+- **Tipos de usuário**: PACIENTE, RESPONSAVEL, CUIDADOR, ADMIN
+- **Admin**: acesso irrestrito a todos os dados (bypass de vínculo); criação apenas via seed/banco direto (bloqueado via API)

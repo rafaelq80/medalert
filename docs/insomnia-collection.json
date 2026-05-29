@@ -1,7 +1,7 @@
 {
   "_type": "export",
   "__export_format": 4,
-  "__export_date": "2026-05-28T00:00:00.000Z",
+  "__export_date": "2026-05-29T00:00:00.000Z",
   "__export_source": "insomnia.desktop.app:v2024.1.0",
   "resources": [
     {
@@ -27,7 +27,9 @@
         "agenda_id": "",
         "vinculo_id": "",
         "registro_id": "",
-        "notificacao_id": ""
+        "notificacao_id": "",
+        "categoria_id": "",
+        "admin_token": ""
       }
     },
     {
@@ -79,6 +81,30 @@
       "name": "Notificações"
     },
     {
+      "_id": "fld_admin",
+      "parentId": "wrk_medalert",
+      "_type": "request_group",
+      "name": "Admin"
+    },
+    {
+      "_id": "fld_admin_usuarios",
+      "parentId": "fld_admin",
+      "_type": "request_group",
+      "name": "Gerenciamento de Usuários"
+    },
+    {
+      "_id": "fld_admin_categorias",
+      "parentId": "fld_admin",
+      "_type": "request_group",
+      "name": "Gerenciamento de Categorias"
+    },
+    {
+      "_id": "fld_admin_metricas",
+      "parentId": "fld_admin",
+      "_type": "request_group",
+      "name": "Métricas e Operações"
+    },
+    {
       "_id": "req_login",
       "parentId": "fld_auth",
       "_type": "request",
@@ -88,6 +114,21 @@
       "body": {
         "mimeType": "application/json",
         "text": "{\n  \"email\": \"responsavel@email.com\",\n  \"senha\": \"senha123\",\n  \"push_token\": \"fcm-token-exemplo\"\n}"
+      },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" }
+      ]
+    },
+    {
+      "_id": "req_login_admin",
+      "parentId": "fld_auth",
+      "_type": "request",
+      "name": "Login Admin",
+      "method": "POST",
+      "url": "{{ _.base_url }}/auth/login",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"admin@medalert.com\",\n  \"senha\": \"admin123\"\n}"
       },
       "headers": [
         { "name": "Content-Type", "value": "application/json" }
@@ -438,6 +479,153 @@
       "url": "{{ _.base_url }}/notificacoes/{{ _.notificacao_id }}/lida",
       "headers": [
         { "name": "Authorization", "value": "Bearer {{ _.access_token }}" }
+      ]
+    },
+    {
+      "_id": "req_admin_listar_usuarios",
+      "parentId": "fld_admin_usuarios",
+      "_type": "request",
+      "name": "Listar Usuários",
+      "method": "GET",
+      "url": "{{ _.base_url }}/admin/usuarios?page=1&size=20",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.admin_token }}" }
+      ]
+    },
+    {
+      "_id": "req_admin_listar_usuarios_filtro",
+      "parentId": "fld_admin_usuarios",
+      "_type": "request",
+      "name": "Listar Usuários (com filtros)",
+      "method": "GET",
+      "url": "{{ _.base_url }}/admin/usuarios?page=1&size=20&tipo=PACIENTE&busca=joao",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.admin_token }}" }
+      ]
+    },
+    {
+      "_id": "req_admin_obter_usuario",
+      "parentId": "fld_admin_usuarios",
+      "_type": "request",
+      "name": "Obter Detalhes do Usuário",
+      "method": "GET",
+      "url": "{{ _.base_url }}/admin/usuarios/{{ _.user_id }}",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.admin_token }}" }
+      ]
+    },
+    {
+      "_id": "req_admin_ativar_usuario",
+      "parentId": "fld_admin_usuarios",
+      "_type": "request",
+      "name": "Ativar Usuário",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/admin/usuarios/{{ _.user_id }}/ativar",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.admin_token }}" }
+      ]
+    },
+    {
+      "_id": "req_admin_desativar_usuario",
+      "parentId": "fld_admin_usuarios",
+      "_type": "request",
+      "name": "Desativar Usuário",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/admin/usuarios/{{ _.user_id }}/desativar",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.admin_token }}" }
+      ]
+    },
+    {
+      "_id": "req_admin_alterar_tipo",
+      "parentId": "fld_admin_usuarios",
+      "_type": "request",
+      "name": "Alterar Tipo do Usuário",
+      "method": "PATCH",
+      "url": "{{ _.base_url }}/admin/usuarios/{{ _.user_id }}/tipo",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"novo_tipo\": \"CUIDADOR\"\n}"
+      },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{ _.admin_token }}" }
+      ]
+    },
+    {
+      "_id": "req_admin_forcar_logout",
+      "parentId": "fld_admin_usuarios",
+      "_type": "request",
+      "name": "Forçar Logout do Usuário",
+      "method": "POST",
+      "url": "{{ _.base_url }}/admin/usuarios/{{ _.user_id }}/forcar-logout",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.admin_token }}" }
+      ]
+    },
+    {
+      "_id": "req_admin_metricas",
+      "parentId": "fld_admin_metricas",
+      "_type": "request",
+      "name": "Obter Métricas do Sistema",
+      "method": "GET",
+      "url": "{{ _.base_url }}/admin/metricas",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.admin_token }}" }
+      ]
+    },
+    {
+      "_id": "req_admin_gerar_registros",
+      "parentId": "fld_admin_metricas",
+      "_type": "request",
+      "name": "Disparar Geração de Registros",
+      "method": "POST",
+      "url": "{{ _.base_url }}/admin/scheduler/gerar-registros",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.admin_token }}" }
+      ]
+    },
+    {
+      "_id": "req_admin_criar_categoria",
+      "parentId": "fld_admin_categorias",
+      "_type": "request",
+      "name": "Criar Categoria",
+      "method": "POST",
+      "url": "{{ _.base_url }}/admin/categorias",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nome\": \"Anti-hipertensivos\",\n  \"descricao\": \"Medicamentos para controle da pressão arterial\"\n}"
+      },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{ _.admin_token }}" }
+      ]
+    },
+    {
+      "_id": "req_admin_atualizar_categoria",
+      "parentId": "fld_admin_categorias",
+      "_type": "request",
+      "name": "Atualizar Categoria",
+      "method": "PUT",
+      "url": "{{ _.base_url }}/admin/categorias/{{ _.categoria_id }}",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"nome\": \"Anti-hipertensivos Atualizados\",\n  \"descricao\": \"Medicamentos para controle e redução da pressão arterial\"\n}"
+      },
+      "headers": [
+        { "name": "Content-Type", "value": "application/json" },
+        { "name": "Authorization", "value": "Bearer {{ _.admin_token }}" }
+      ]
+    },
+    {
+      "_id": "req_admin_excluir_categoria",
+      "parentId": "fld_admin_categorias",
+      "_type": "request",
+      "name": "Excluir Categoria",
+      "method": "DELETE",
+      "url": "{{ _.base_url }}/admin/categorias/{{ _.categoria_id }}",
+      "headers": [
+        { "name": "Authorization", "value": "Bearer {{ _.admin_token }}" }
       ]
     }
   ]

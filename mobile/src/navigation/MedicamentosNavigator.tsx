@@ -32,7 +32,7 @@ export function MedicamentosNavigator() {
       <Stack.Screen
         name="MedicamentosList"
         component={MedicamentosScreen}
-        options={{ headerShown: false }}
+        options={{ title: 'Medicamentos' }}
       />
       <Stack.Screen
         name="MedicamentoForm"

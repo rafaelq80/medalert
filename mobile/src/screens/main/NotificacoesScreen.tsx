@@ -5,17 +5,21 @@ import { NotificacaoItem } from '../../components/NotificacaoItem';
 import { EmptyState } from '../../components/EmptyState';
 import { ErrorState } from '../../components/ErrorState';
 import { LoadingState } from '../../components/LoadingState';
+import { SelectDropdown } from '../../components/SelectDropdown';
 import { colors } from '../../constants/colors';
 import { typography, spacing } from '../../constants/typography';
 
 export function NotificacoesScreen() {
   const {
     notificacoes,
+    pacientes,
+    selectedPacienteId,
     isLoading,
     isRefreshing,
     error,
     handleRefresh,
     handleMarkAsRead,
+    handleSelectPaciente,
     retry,
   } = useNotificacoes();
 
@@ -41,6 +45,19 @@ export function NotificacoesScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Patient selector for cuidador/responsável with multiple vinculos */}
+      {pacientes.length > 1 && (
+        <View style={styles.selectorContainer}>
+          <SelectDropdown
+            options={pacientes}
+            selectedId={selectedPacienteId}
+            onSelect={handleSelectPaciente}
+            label="Paciente"
+            placeholder="Selecione o paciente"
+          />
+        </View>
+      )}
+
       {/* Alert banner for unread notifications */}
       {unreadCount > 0 && (
         <View style={[styles.alertBanner, hasUrgent && styles.alertBannerUrgent]}>
@@ -88,6 +105,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.backgroundApp,
+  },
+  selectorContainer: {
+    paddingHorizontal: spacing.marginMobile,
+    paddingTop: spacing.marginMobile,
+    paddingBottom: 8,
   },
   alertBanner: {
     flexDirection: 'row',

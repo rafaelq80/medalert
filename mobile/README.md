@@ -69,6 +69,7 @@ Variáveis com prefixo `EXPO_PUBLIC_` são injetadas automaticamente no bundle p
 mobile/src/
 ├── components/              # Componentes reutilizáveis
 │   ├── AdherenceCard.tsx    # Card de percentual de adesão
+│   ├── DatePickerInput.tsx  # Date picker nativo DD/MM/AAAA
 │   ├── EmptyState.tsx       # Estado vazio genérico
 │   ├── ErrorState.tsx       # Estado de erro com retry
 │   ├── FormInput.tsx        # Input integrado com react-hook-form
@@ -84,28 +85,44 @@ mobile/src/
 │   └── AuthContext.tsx      # Estado global de autenticação
 ├── hooks/                   # Custom hooks (lógica de negócio)
 │   ├── useAgenda.ts         # Fetch agenda do dia + confirmação
+│   ├── useAgendasCrud.ts    # CRUD de agendas de medicamento
 │   ├── useHistorico.ts      # Fetch histórico + cálculo de adesão
+│   ├── useLogin.ts          # Lógica de login
 │   ├── useMedicamentos.ts   # Fetch medicamentos + inativar
-│   └── useNotificacoes.ts   # Fetch notificações + marcar como lida
+│   ├── useNotificacoes.ts   # Fetch notificações + marcar como lida
+│   ├── useRegister.ts       # Lógica de cadastro
+│   └── useVinculos.ts       # CRUD de vínculos
 ├── navigation/
 │   ├── AppNavigator.tsx     # Auth Stack vs Main Stack
-│   └── MainTabNavigator.tsx # Tabs condicionais por tipo de usuário
+│   ├── MainTabNavigator.tsx # Tabs condicionais por tipo de usuário
+│   ├── AdminNavigator.tsx   # Stack navigator do painel admin
+│   └── MedicamentosNavigator.tsx # Stack navigator de medicamentos
 ├── schemas/                 # Validação com Zod
+│   ├── agendaSchema.ts      # Schema de agenda
 │   ├── loginSchema.ts       # Schema de login
-│   └── registerSchema.ts   # Schema de cadastro (condicional por tipo)
+│   ├── medicamentoSchema.ts # Schema de medicamento
+│   └── registerSchema.ts    # Schema de cadastro (condicional por tipo)
 ├── screens/
 │   ├── auth/
 │   │   ├── LoginScreen.tsx  # Tela de login
 │   │   └── RegisterScreen.tsx # Cadastro com campos condicionais
+│   ├── admin/
+│   │   ├── DashboardScreen.tsx       # Métricas do sistema
+│   │   ├── UserManagementScreen.tsx  # Lista e gestão de usuários
+│   │   ├── UserDetailScreen.tsx      # Detalhes + ações sobre usuário
+│   │   └── CategoryManagementScreen.tsx # CRUD de categorias
 │   └── main/
 │       ├── AgendaScreen.tsx       # Agenda do dia
 │       ├── HistoricoScreen.tsx    # Histórico + % adesão
 │       ├── MedicamentoFormScreen.tsx # Formulário de medicamento
 │       ├── MedicamentosScreen.tsx # Lista de medicamentos
+│       ├── AgendaFormScreen.tsx   # Formulário de agendas
+│       ├── VinculosScreen.tsx     # Gestão de vínculos
 │       ├── NotificacoesScreen.tsx # Notificações
 │       └── PerfilScreen.tsx       # Perfil + logout
 ├── services/
 │   ├── api.ts               # Axios + interceptor auto-refresh
+│   ├── adminApi.ts          # Endpoints administrativos (métricas, usuários, categorias)
 │   └── pushService.ts       # Push notifications (expo-notifications)
 └── types/
     └── index.ts             # Tipos TypeScript (espelham a API)
@@ -113,19 +130,25 @@ mobile/src/
 
 ## Funcionalidades por tipo de usuário
 
-| Funcionalidade | Paciente | Responsável | Cuidador |
-|----------------|----------|-------------|----------|
-| Ver agenda do dia | ✓ | — | ✓ |
-| Confirmar tomada | ✓ | ✓ | ✓ |
-| Cadastrar medicamento | — | ✓ | — |
-| Ver histórico de adesão | ✓ | ✓ | ✓ |
-| Receber notificações | ✓ | ✓ | ✓ |
+| Funcionalidade | Paciente | Responsável | Cuidador | Admin |
+|----------------|----------|-------------|----------|-------|
+| Ver agenda do dia | ✓ | — | ✓ | — |
+| Confirmar tomada | ✓ | ✓ | ✓ | — |
+| Cadastrar medicamento | — | ✓ | ✓ | — |
+| Ver histórico de adesão | ✓ | ✓ | ✓ | — |
+| Receber notificações | ✓ | ✓ | ✓ | — |
+| Gerenciar vínculos | — | ✓ | ✓ | — |
+| Dashboard de métricas | — | — | — | ✓ |
+| Gerenciar usuários | — | — | — | ✓ |
+| Gerenciar categorias | — | — | — | ✓ |
+| Forçar logout de usuários | — | — | — | ✓ |
 
 ## Navegação
 
 - **Não autenticado**: Login → Cadastro
 - **Paciente/Cuidador**: Agenda | Histórico | Alertas | Perfil
-- **Responsável**: Remédios | Histórico | Alertas | Perfil
+- **Responsável**: Remédios | Vínculos | Histórico | Alertas | Perfil
+- **Admin**: Dashboard | Usuários | Categorias (painel administrativo dedicado)
 
 ## Design System
 

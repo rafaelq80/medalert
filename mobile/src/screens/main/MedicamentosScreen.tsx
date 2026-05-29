@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Text,
 } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMedicamentos } from '../../hooks/useMedicamentos';
@@ -18,7 +17,7 @@ import { LoadingState } from '../../components/LoadingState';
 import { SelectDropdown } from '../../components/SelectDropdown';
 import { Medicamento } from '../../types';
 import { colors } from '../../constants/colors';
-import { spacing } from '../../constants/typography';
+import { typography, spacing } from '../../constants/typography';
 import { MedicamentosStackParamList } from '../../navigation/MedicamentosNavigator';
 
 type NavigationProp = NativeStackNavigationProp<MedicamentosStackParamList, 'MedicamentosList'>;
@@ -70,8 +69,6 @@ export function MedicamentosScreen() {
     [navigation]
   );
 
-  const insets = useSafeAreaInsets();
-
   if (isLoading && pacientes.length === 0) {
     return <LoadingState label="Carregando medicamentos" />;
   }
@@ -80,9 +77,11 @@ export function MedicamentosScreen() {
     return <ErrorState message={error} onRetry={retry} />;
   }
 
+  const pacienteNome = pacientes.length === 1 ? pacientes[0].label : undefined;
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Patient selector — only shown when multiple vinculos */}
+    <View style={styles.container}>
+      {/* Patient selector — shown when multiple vinculos */}
       {pacientes.length > 1 && (
         <View style={styles.pacienteSelectorContainer}>
           <SelectDropdown
@@ -92,6 +91,13 @@ export function MedicamentosScreen() {
             label="Paciente"
             placeholder="Selecione o paciente"
           />
+        </View>
+      )}
+
+      {/* Single patient banner */}
+      {pacientes.length === 1 && pacienteNome && (
+        <View style={styles.pacienteBanner}>
+          <Text style={styles.pacienteBannerText}>💊 Medicamentos de {pacienteNome}</Text>
         </View>
       )}
 
@@ -152,11 +158,21 @@ const styles = StyleSheet.create({
   },
   pacienteSelectorContainer: {
     paddingHorizontal: spacing.marginMobile,
-    paddingTop: 16,
-    paddingBottom: 12,
+    paddingVertical: 12,
     backgroundColor: colors.surfaceCard,
     borderBottomWidth: 1,
     borderBottomColor: colors.outlineVariant,
+  },
+  pacienteBanner: {
+    backgroundColor: colors.surfaceContainerLow,
+    paddingVertical: 10,
+    paddingHorizontal: spacing.marginMobile,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.outlineVariant,
+  },
+  pacienteBannerText: {
+    ...typography.labelLg,
+    color: colors.primary,
   },
   listContent: {
     padding: spacing.marginMobile,
