@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.dependencies import get_current_user, get_db
@@ -17,11 +17,13 @@ router = APIRouter(
     response_model=list[NotificacaoResponse],
 )
 async def list_notificacoes_endpoint(
+    page: int = Query(1, ge=1),
+    size: int = Query(50, ge=1, le=100),
     current_user: Usuario = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """List all notifications for the current user."""
-    return await list_notificacoes(current_user, db)
+    """List notifications for the current user with pagination."""
+    return await list_notificacoes(current_user, db, page=page, size=size)
 
 
 @router.put(

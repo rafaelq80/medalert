@@ -9,6 +9,7 @@ import {
   Modal,
 } from 'react-native';
 import { Toast } from '../../components/Toast';
+import { useToast } from '../../hooks/useToast';
 import { StyleSheet } from 'react-native-unistyles';
 import { Ionicons } from '@expo/vector-icons';
 import { BottomSheet } from '../../components/BottomSheet';
@@ -42,8 +43,7 @@ export function UserDetailScreen() {
   const [usuario, setUsuario] = useState<UsuarioDetalhe | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' as 'success' | 'error' | 'info' });
-  const showToast = (message: string, type: 'success' | 'error' | 'info') => setToast({ visible: true, message, type });
+  const { toast, showToast, hideToast } = useToast();
 
   const fetchUsuario = useCallback(async () => {
     try {
@@ -158,7 +158,7 @@ export function UserDetailScreen() {
         />
       }
     >
-      <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={() => setToast(t => ({ ...t, visible: false }))} />
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={hideToast} />
       {/* Header com nome e status */}
       <View style={styles.headerCard}>
         <View style={styles.headerRow}>

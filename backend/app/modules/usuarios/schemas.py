@@ -1,16 +1,16 @@
 from datetime import date, datetime
 from typing import Self
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from app.modules.usuarios.models import NivelAutonomia, TipoUsuario
 
 
 class UsuarioCreate(BaseModel):
-    nome: str
-    email: str
-    senha: str
-    telefone: str | None = None
+    nome: str = Field(min_length=1, max_length=255)
+    email: EmailStr
+    senha: str = Field(min_length=6, max_length=128)
+    telefone: str | None = Field(default=None, max_length=20, pattern=r"^\(?\d{2}\)?\s?\d{4,5}-?\d{4}$")
     tipo: TipoUsuario
 
     # Campos específicos de PACIENTE
@@ -19,8 +19,13 @@ class UsuarioCreate(BaseModel):
     nivel_autonomia: NivelAutonomia | None = None
 
     # Campos específicos de RESPONSAVEL/CUIDADOR
-    grau_parentesco: str | None = None
+    grau_parentesco: str | None = Field(default=None, max_length=100)
     recebe_notificacoes: bool | None = None
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        return v.strip().lower()
 
     @model_validator(mode="after")
     def validate_conditional_fields(self) -> Self:
@@ -59,29 +64,28 @@ class UsuarioResponse(BaseModel):
     grau_parentesco: str | None = None
     recebe_notificacoes: bool | None = None
 
-    push_token: str | None = None
-
 
 class UsuarioUpdate(BaseModel):
-    nome: str | None = None
-    telefone: str | None = None
+    nome: str | None = Field(default=None, min_length=1, max_length=255)
+    telefone: str | None = Field(default=None, max_length=20)
     obs_medicas: str | None = None
-    grau_parentesco: str | None = None
+    grau_parentesco: str | None = Field(default=None, max_length=100)
     recebe_notificacoes: bool | None = None
+    data_nascimento: date | None = None
+    nivel_autonomia: NivelAutonomia | None = None
 
 
 class PushTokenUpdate(BaseModel):
-    push_token: str
+    push_token: str = Field(min_length=1, max_length=500)
 
 
 class SenhaUpdate(BaseModel):
-    senha_atual: str
-    nova_senha: str
+    senha_atual: str = Field(min_length=1)
+    nova_senha: str = Field(min_length=6, max_length=128)
 
 
 class UsuarioBuscaResponse(BaseModel):
     """Response for patient search — exposes minimal data."""
-
     model_config = ConfigDict(from_attributes=True)
 
     id: int

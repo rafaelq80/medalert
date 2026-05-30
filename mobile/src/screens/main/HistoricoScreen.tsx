@@ -149,7 +149,7 @@ const styles = StyleSheet.create(theme => ({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.onSurface,
+    color: theme.screenTitleColor,
   },
   pacienteSubtitle: {
     fontSize: 15,

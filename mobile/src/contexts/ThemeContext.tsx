@@ -6,19 +6,15 @@ type ThemeMode = 'system' | 'light' | 'dark';
 
 interface PreferencesContextData {
   themeMode: ThemeMode;
-  fontScaleOffset: number;
   setThemeMode: (mode: ThemeMode) => void;
-  setFontScale: (offset: number) => void;
 }
 
 const PreferencesContext = createContext<PreferencesContextData>({} as PreferencesContextData);
 
 const THEME_KEY = 'medalert_theme_mode';
-const FONT_KEY = 'medalert_font_scale';
 
 export function PreferencesProvider({ children }: { children: React.ReactNode }) {
   const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
-  const [fontScaleOffset, setFontScaleOffset] = useState(0);
 
   useEffect(() => {
     loadPrefs();
@@ -31,8 +27,6 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         setThemeModeState(saved);
         applyTheme(saved);
       }
-      const scale = await SecureStore.getItemAsync(FONT_KEY);
-      if (scale) setFontScaleOffset(parseInt(scale, 10) || 0);
     } catch {}
   };
 
@@ -61,15 +55,8 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
     try { await SecureStore.setItemAsync(THEME_KEY, mode); } catch {}
   }, []);
 
-  const setFontScale = useCallback(async (offset: number) => {
-    setFontScaleOffset(offset);
-    // Font scale is applied via the fontScaleOffset value that components read
-    // Components that need to scale text should use: fontSize: baseSize + fontScaleOffset
-    try { await SecureStore.setItemAsync(FONT_KEY, offset.toString()); } catch {}
-  }, []);
-
   return (
-    <PreferencesContext.Provider value={{ themeMode, fontScaleOffset, setThemeMode, setFontScale }}>
+    <PreferencesContext.Provider value={{ themeMode, setThemeMode }}>
       {children}
     </PreferencesContext.Provider>
   );
@@ -78,8 +65,3 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
 export function usePreferences() {
   return useContext(PreferencesContext);
 }
-
-// Backward compat exports
-export const useTheme = usePreferences;
-export const useAppTheme = usePreferences;
-export const ThemeProvider = PreferencesProvider;

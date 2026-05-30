@@ -5,8 +5,7 @@ import { useUnistyles } from 'react-native-unistyles';
 import { MedicamentosScreen } from '../screens/main/MedicamentosScreen';
 import { MedicamentoFormScreen } from '../screens/main/MedicamentoFormScreen';
 import { AgendaFormScreen } from '../screens/main/AgendaFormScreen';
-import { useAuth } from '../contexts/AuthContext';
-import { UserBadge } from '../components/UserBadge';
+import { AppHeader } from '../components/AppHeader';
 import { Medicamento } from '../types';
 
 export type MedicamentosStackParamList = {
@@ -18,16 +17,7 @@ export type MedicamentosStackParamList = {
 const Stack = createNativeStackNavigator<MedicamentosStackParamList>();
 
 function MedHeader() {
-  const { user } = useAuth();
-  const { theme } = useUnistyles();
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-      <UserBadge nome={user?.nome ?? 'U'} size={30} />
-      <Text style={{ fontSize: 16, fontWeight: '600', color: theme.onSurface, maxWidth: 200 }} numberOfLines={1}>
-        {user?.nome}
-      </Text>
-    </View>
-  );
+  return <AppHeader />;
 }
 
 export function MedicamentosNavigator() {

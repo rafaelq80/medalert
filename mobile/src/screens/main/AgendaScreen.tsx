@@ -2,6 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, SectionList, RefreshControl, Vibration } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { useAgenda } from '../../hooks/useAgenda';
+import { useToast } from '../../hooks/useToast';
+import { Toast } from '../../components/Toast';
 import { RegistroTomadaCard } from '../../components/RegistroTomadaCard';
 import { EmptyState } from '../../components/EmptyState';
 import { ErrorState } from '../../components/ErrorState';
@@ -43,13 +45,21 @@ export function AgendaScreen() {
     isRefreshing,
     error,
     confirmingId,
+    confirmError,
     handleRefresh,
     handleConfirm,
     handleSelectPaciente,
     retry,
   } = useAgenda();
 
+  const { toast, showToast, hideToast } = useToast();
   const [showCheck, setShowCheck] = useState(false);
+
+  useEffect(() => {
+    if (confirmError) {
+      showToast(confirmError, 'error');
+    }
+  }, [confirmError]);
 
   const pendingCount = registros.filter(
     (r) => r.status === 'PENDENTE' || r.status === 'ATRASADO'
@@ -101,6 +111,7 @@ export function AgendaScreen() {
 
   return (
     <View style={styles.container}>
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={hideToast} />
       {/* Section title + patient selector */}
       <View style={styles.selectorContainer}>
         <Text style={styles.screenTitle}>Agenda</Text>
@@ -195,7 +206,7 @@ const styles = StyleSheet.create(theme => ({
   screenTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.onSurface,
+    color: theme.screenTitleColor,
   },
   pacienteSubtitle: {
     fontSize: 15,

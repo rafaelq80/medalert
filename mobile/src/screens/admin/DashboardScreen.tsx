@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Toast } from '../../components/Toast';
+import { useToast } from '../../hooks/useToast';
 import { StyleSheet } from 'react-native-unistyles';
 import { Ionicons } from '@expo/vector-icons';
 import { LoadingState } from '../../components/LoadingState';
@@ -43,8 +44,7 @@ export function DashboardScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [gerandoRegistros, setGerandoRegistros] = useState(false);
-  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' as 'success' | 'error' | 'info' });
-  const showToast = (message: string, type: 'success' | 'error' | 'info') => setToast({ visible: true, message, type });
+  const { toast, showToast, hideToast } = useToast();
 
   const fetchMetricas = useCallback(async (showFullLoading = true) => {
     try {
@@ -89,7 +89,13 @@ export function DashboardScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={[styles.refreshColor.color]} />}
     >
-      <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={() => setToast(t => ({ ...t, visible: false }))} />
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={hideToast} />
+
+      {/* Section title */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.title}>Dashboard</Text>
+      </View>
+
       {/* Section: Usuários */}
       <Text style={styles.sectionTitle}>Usuários</Text>
       <View style={styles.cardGrid}>
@@ -183,4 +189,16 @@ const styles = StyleSheet.create(theme => ({
   statusIgnoredColor: { color: theme.statusIgnored },
   outlineColor: { color: theme.outline },
   surfaceHighBg: { backgroundColor: theme.surfaceHigh },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 2,
+    paddingBottom: 2,
+  },
+   title: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.screenTitleColor,
+  },
 }));

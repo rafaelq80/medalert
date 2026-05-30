@@ -1,9 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, ViewStyle } from 'react-native';
+import { View, Animated, ViewStyle, DimensionValue } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 
 interface SkeletonLoaderProps {
-  width?: number | string;
+  width?: DimensionValue;
   height?: number;
   borderRadiusSize?: number;
   style?: ViewStyle;
@@ -41,7 +41,7 @@ export function SkeletonLoader({
       style={[
         styles.skeleton,
         {
-          width: width as any,
+          width,
           height,
           borderRadius: borderRadiusSize,
           opacity,

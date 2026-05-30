@@ -5,7 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useUnistyles } from 'react-native-unistyles';
 import { useAuth } from '../contexts/AuthContext';
-import { UserBadge } from '../components/UserBadge';
+import { AppHeader } from '../components/AppHeader';
 import { DashboardScreen } from '../screens/admin/DashboardScreen';
 import { UserManagementScreen } from '../screens/admin/UserManagementScreen';
 import { UserDetailScreen } from '../screens/admin/UserDetailScreen';
@@ -19,14 +19,7 @@ const Tab = createBottomTabNavigator<AdminTabParamList>();
 const Stack = createNativeStackNavigator<AdminStackParamList>();
 
 function AdminHeader() {
-  const { user } = useAuth();
-  const { theme } = useUnistyles();
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-      <UserBadge nome={user?.nome ?? 'A'} size={30} />
-      <Text style={{ fontSize: 16, fontWeight: '600', color: theme.onSurface, maxWidth: 200 }} numberOfLines={1}>{user?.nome}</Text>
-    </View>
-  );
+  return <AppHeader />;
 }
 
 function AdminTabNavigator() {

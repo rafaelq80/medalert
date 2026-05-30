@@ -12,6 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import { Toast } from '../../components/Toast';
+import { useToast } from '../../hooks/useToast';
 import { StyleSheet } from 'react-native-unistyles';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -29,8 +30,7 @@ export function MedicamentoFormScreen({ route, navigation }: Props) {
   const { pacienteId, pacienteNome, medicamento } = route.params;
   const isEditing = !!medicamento;
 
-  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' as 'success' | 'error' | 'info' });
-  const showToast = (message: string, type: 'success' | 'error' | 'info') => setToast({ visible: true, message, type });
+  const { toast, showToast, hideToast } = useToast();
 
   const [loading, setLoading] = useState(false);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -123,7 +123,7 @@ export function MedicamentoFormScreen({ route, navigation }: Props) {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={() => setToast(t => ({ ...t, visible: false }))} />
+        <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={hideToast} />
         <Text style={styles.title}>
           {isEditing ? 'Editar Medicamento' : 'Novo Medicamento'}
         </Text>
@@ -325,10 +325,9 @@ const styles = StyleSheet.create(theme => ({
     gap: 16,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
-    lineHeight: 28,
-    color: theme.primary,
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.screenTitleColor,
     marginBottom: 4,
   },
   pacienteInfo: {

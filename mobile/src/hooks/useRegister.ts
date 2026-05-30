@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { api } from '../services/api';
+import { isApiError, isHttpStatus, getApiErrorMessage } from '../utils/errors';
 import { TipoUsuario } from '../types';
 import { registerSchema, RegisterFormData } from '../schemas/registerSchema';
 
@@ -40,19 +41,27 @@ export function useRegister(): UseRegisterReturn {
   const tipo = watch('tipo');
 
   const handleTipoChange = (newTipo: TipoUsuario) => {
+    // Reset form with type-specific defaults
+    const baseValues = {
+      nome: watch('nome'),
+      email: watch('email'),
+      senha: watch('senha'),
+      telefone: watch('telefone'),
+    };
+
     if (newTipo === 'PACIENTE') {
       setValue('tipo', 'PACIENTE');
-      (setValue as (name: string, value: unknown) => void)('data_nascimento', '');
-      (setValue as (name: string, value: unknown) => void)('obs_medicas', '');
-      (setValue as (name: string, value: unknown) => void)('nivel_autonomia', 'TOTAL');
+      setValue('data_nascimento' as keyof RegisterFormData, '');
+      setValue('obs_medicas' as keyof RegisterFormData, '');
+      setValue('nivel_autonomia' as keyof RegisterFormData, 'TOTAL');
     } else if (newTipo === 'RESPONSAVEL') {
       setValue('tipo', 'RESPONSAVEL');
-      (setValue as (name: string, value: unknown) => void)('grau_parentesco', '');
-      (setValue as (name: string, value: unknown) => void)('recebe_notificacoes', true);
+      setValue('grau_parentesco' as keyof RegisterFormData, '');
+      setValue('recebe_notificacoes' as keyof RegisterFormData, true as never);
     } else {
       setValue('tipo', 'CUIDADOR');
-      (setValue as (name: string, value: unknown) => void)('grau_parentesco', '');
-      (setValue as (name: string, value: unknown) => void)('recebe_notificacoes', true);
+      setValue('grau_parentesco' as keyof RegisterFormData, '');
+      setValue('recebe_notificacoes' as keyof RegisterFormData, true as never);
     }
   };
 
@@ -62,7 +71,7 @@ export function useRegister(): UseRegisterReturn {
     try {
       const payload: Record<string, unknown> = {
         nome: data.nome.trim(),
-        email: data.email.trim(),
+        email: data.email.trim().toLowerCase(),
         senha: data.senha,
         tipo: data.tipo,
       };
@@ -85,17 +94,12 @@ export function useRegister(): UseRegisterReturn {
       await api.post('/usuarios', payload);
       return true;
     } catch (err: unknown) {
-      if (isAxiosError(err)) {
-        if (err.response?.status === 409) {
-          setError('E-mail já cadastrado.');
-        } else if (err.response?.status === 422) {
-          const detail = err.response?.data?.detail;
-          setError(typeof detail === 'string' ? detail : 'Dados inválidos. Verifique os campos.');
-        } else {
-          setError('Não foi possível criar a conta. Tente novamente.');
-        }
+      if (isHttpStatus(err, 409)) {
+        setError('E-mail já cadastrado.');
+      } else if (isHttpStatus(err, 422)) {
+        setError(getApiErrorMessage(err, 'Dados inválidos. Verifique os campos.'));
       } else {
-        setError('Não foi possível criar a conta. Tente novamente.');
+        setError(getApiErrorMessage(err, 'Não foi possível criar a conta. Tente novamente.'));
       }
       return false;
     } finally {
@@ -117,8 +121,4 @@ export function useRegister(): UseRegisterReturn {
     handleTipoChange,
     onSubmit,
   };
-}
-
-function isAxiosError(error: unknown): error is { response?: { status?: number; data?: { detail?: string } } } {
-  return typeof error === 'object' && error !== null && 'response' in error;
 }

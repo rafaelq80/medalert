@@ -272,10 +272,9 @@ const styles = StyleSheet.create(theme => ({
     gap: 16,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
-    lineHeight: 28,
-    color: theme.primary,
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.screenTitleColor,
     textAlign: 'center',
   },
   subtitle: {

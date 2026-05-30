@@ -53,42 +53,6 @@ async def list_by_paciente(
     return list(result.scalars().all())
 
 
-async def get_pending_in_window(
-    start: datetime, end: datetime, db: AsyncSession
-) -> list[tuple[Agenda, datetime]]:
-    """
-    Get active agendas that should generate registros in the given time window
-    but don't have one yet.
-    Returns list of tuples (agenda, data_hora_prevista).
-    """
-    # Get all active agendas
-    agendas_result = await db.execute(
-        select(Agenda).where(Agenda.ativo == True)
-    )
-    agendas = list(agendas_result.scalars().all())
-
-    pending = []
-    for agenda in agendas:
-        # Calculate the data_hora_prevista for this agenda within the window
-        current = start.replace(
-            hour=agenda.horario.hour,
-            minute=agenda.horario.minute,
-            second=0,
-            microsecond=0,
-        )
-        if current < start:
-            current += timedelta(days=1)
-
-        while current <= end:
-            # Check if registro already exists for this agenda and time
-            exists = await exists_for_agenda_time(agenda.id, current, db)
-            if not exists:
-                pending.append((agenda, current))
-            current += timedelta(days=1)
-
-    return pending
-
-
 async def get_overdue(db: AsyncSession) -> list[RegistroTomada]:
     """
     Get registros with status PENDENTE where

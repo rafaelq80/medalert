@@ -2,12 +2,9 @@ import { useState, useCallback, useRef } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { Notificacao, Vinculo } from '../types';
+import { Notificacao, Vinculo, PacienteOption } from '../types';
 
-export interface PacienteOption {
-  id: number;
-  label: string;
-}
+const PAGE_SIZE = 5;
 
 export interface UseNotificacoesReturn {
   notificacoes: Notificacao[];
@@ -15,8 +12,11 @@ export interface UseNotificacoesReturn {
   selectedPacienteId: number | null;
   isLoading: boolean;
   isRefreshing: boolean;
+  isLoadingMore: boolean;
+  hasMore: boolean;
   error: string | null;
   handleRefresh: () => void;
+  handleLoadMore: () => void;
   handleMarkAsRead: (notificacao: Notificacao) => void;
   handleSelectPaciente: (id: number) => void;
   retry: () => void;
@@ -29,24 +29,34 @@ export function useNotificacoes(): UseNotificacoesReturn {
   const [selectedPacienteId, setSelectedPacienteId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const selectedIdRef = useRef<number | null>(null);
+  const pageRef = useRef(1);
+
+  const fetchPage = useCallback(async (page: number): Promise<Notificacao[]> => {
+    const { data } = await api.get<Notificacao[]>('/notificacoes', {
+      params: { page, size: PAGE_SIZE },
+    });
+    return data;
+  }, []);
 
   const fetchNotificacoes = useCallback(async () => {
     if (!user) return;
 
     try {
       setError(null);
+      pageRef.current = 1;
 
-      // Fetch notifications
-      const { data } = await api.get<Notificacao[]>('/notificacoes');
+      const data = await fetchPage(1);
       const sorted = data.sort(
-        (a, b) =>
-          new Date(b.enviado_em).getTime() - new Date(a.enviado_em).getTime()
+        (a, b) => new Date(b.enviado_em).getTime() - new Date(a.enviado_em).getTime()
       );
       setAllNotificacoes(sorted);
+      setHasMore(data.length >= PAGE_SIZE);
 
-      // For responsável/cuidador, fetch vínculos to build patient selector
+      // Build patient filter for responsável/cuidador
       if (user.tipo === 'RESPONSAVEL' || user.tipo === 'CUIDADOR') {
         const { data: vinculos } = await api.get<Vinculo[]>('/vinculos');
         const activeVinculos = vinculos.filter((v) => v.ativo);
@@ -61,12 +71,9 @@ export function useNotificacoes(): UseNotificacoesReturn {
           ];
           setPacientes(options);
 
-          // Keep current selection if still valid
-          const currentValid =
-            selectedIdRef.current !== null &&
-            options.some((o) => o.id === selectedIdRef.current);
+          const currentValid = selectedIdRef.current !== null && options.some((o) => o.id === selectedIdRef.current);
           if (!currentValid) {
-            selectedIdRef.current = 0; // default: show all
+            selectedIdRef.current = 0;
             setSelectedPacienteId(0);
           }
         } else {
@@ -85,7 +92,7 @@ export function useNotificacoes(): UseNotificacoesReturn {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [user]);
+  }, [user, fetchPage]);
 
   useFocusEffect(
     useCallback(() => {
@@ -94,16 +101,37 @@ export function useNotificacoes(): UseNotificacoesReturn {
     }, [fetchNotificacoes])
   );
 
-  // Filter notifications by selected patient
-  const notificacoes =
-    selectedPacienteId && selectedPacienteId !== 0
-      ? allNotificacoes.filter((n) => {
-          // Filter by paciente_nome matching the selected option
-          const selected = pacientes.find((p) => p.id === selectedPacienteId);
-          if (!selected) return true;
-          return n.paciente_nome === selected.label;
-        })
-      : allNotificacoes;
+  const handleLoadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return;
+
+    setIsLoadingMore(true);
+    try {
+      const nextPage = pageRef.current + 1;
+      const data = await fetchPage(nextPage);
+
+      if (data.length < PAGE_SIZE) {
+        setHasMore(false);
+      }
+
+      if (data.length > 0) {
+        pageRef.current = nextPage;
+        setAllNotificacoes((prev) => [...prev, ...data]);
+      }
+    } catch {
+      // Silent fail on load more
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, hasMore, fetchPage]);
+
+  // Filter by selected patient
+  const notificacoes = selectedPacienteId && selectedPacienteId !== 0
+    ? allNotificacoes.filter((n) => {
+        const selected = pacientes.find((p) => p.id === selectedPacienteId);
+        if (!selected) return true;
+        return n.paciente_nome === selected.label;
+      })
+    : allNotificacoes;
 
   const handleRefresh = useCallback(() => {
     setIsRefreshing(true);
@@ -112,18 +140,13 @@ export function useNotificacoes(): UseNotificacoesReturn {
 
   const handleMarkAsRead = useCallback(async (notificacao: Notificacao) => {
     if (notificacao.lido_em) return;
-
     try {
       await api.put(`/notificacoes/${notificacao.id}/lida`);
       setAllNotificacoes((prev) =>
-        prev.map((n) =>
-          n.id === notificacao.id
-            ? { ...n, lido_em: new Date().toISOString() }
-            : n
-        )
+        prev.map((n) => n.id === notificacao.id ? { ...n, lido_em: new Date().toISOString() } : n)
       );
     } catch {
-      // Silently fail — user can retry
+      // Silent fail
     }
   }, []);
 
@@ -143,8 +166,11 @@ export function useNotificacoes(): UseNotificacoesReturn {
     selectedPacienteId,
     isLoading,
     isRefreshing,
+    isLoadingMore,
+    hasMore,
     error,
     handleRefresh,
+    handleLoadMore,
     handleMarkAsRead,
     handleSelectPaciente,
     retry,

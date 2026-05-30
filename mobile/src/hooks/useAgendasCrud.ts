@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
 import { api } from '../services/api';
+import { getApiErrorMessage } from '../utils/errors';
 import { Agenda } from '../types';
 
 export interface UseAgendasCrudReturn {
@@ -8,8 +8,8 @@ export interface UseAgendasCrudReturn {
   isLoading: boolean;
   error: string | null;
   fetchAgendas: (medicamentoId: number) => void;
-  createAgenda: (medicamentoId: number, data: Record<string, unknown>) => Promise<boolean>;
-  deleteAgenda: (agenda: Agenda) => void;
+  createAgenda: (medicamentoId: number, data: Record<string, unknown>) => Promise<{ success: boolean; error?: string }>;
+  deleteAgenda: (agenda: Agenda) => Promise<boolean>;
   retry: (medicamentoId: number) => void;
 }
 
@@ -22,9 +22,7 @@ export function useAgendasCrud(): UseAgendasCrudReturn {
     setIsLoading(true);
     setError(null);
     try {
-      const { data } = await api.get<Agenda[]>(
-        `/medicamentos/${medicamentoId}/agendas`
-      );
+      const { data } = await api.get<Agenda[]>(`/medicamentos/${medicamentoId}/agendas`);
       setAgendas(data.filter((a) => a.ativo));
     } catch {
       setError('Não foi possível carregar as agendas.');
@@ -34,54 +32,31 @@ export function useAgendasCrud(): UseAgendasCrudReturn {
   }, []);
 
   const createAgenda = useCallback(
-    async (medicamentoId: number, payload: Record<string, unknown>): Promise<boolean> => {
+    async (medicamentoId: number, payload: Record<string, unknown>): Promise<{ success: boolean; error?: string }> => {
       try {
-        const { data } = await api.post<Agenda>(
-          `/medicamentos/${medicamentoId}/agendas`,
-          payload
-        );
+        const { data } = await api.post<Agenda>(`/medicamentos/${medicamentoId}/agendas`, payload);
         setAgendas((prev) => [...prev, data]);
-        return true;
-      } catch (err: unknown) {
-        const axiosErr = err as { response?: { data?: { detail?: string } } };
-        Alert.alert(
-          'Erro',
-          axiosErr.response?.data?.detail || 'Não foi possível criar a agenda.'
-        );
-        return false;
+        return { success: true };
+      } catch (err) {
+        return { success: false, error: getApiErrorMessage(err, 'Não foi possível criar a agenda.') };
       }
     },
     []
   );
 
-  const deleteAgenda = useCallback((agenda: Agenda) => {
-    Alert.alert(
-      'Remover horário',
-      'Deseja realmente remover este horário de tomada?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Remover',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.delete(`/agendas/${agenda.id}`);
-              setAgendas((prev) => prev.filter((a) => a.id !== agenda.id));
-            } catch {
-              Alert.alert('Erro', 'Não foi possível remover a agenda.');
-            }
-          },
-        },
-      ]
-    );
+  const deleteAgenda = useCallback(async (agenda: Agenda): Promise<boolean> => {
+    try {
+      await api.delete(`/agendas/${agenda.id}`);
+      setAgendas((prev) => prev.filter((a) => a.id !== agenda.id));
+      return true;
+    } catch {
+      return false;
+    }
   }, []);
 
-  const retry = useCallback(
-    (medicamentoId: number) => {
-      fetchAgendas(medicamentoId);
-    },
-    [fetchAgendas]
-  );
+  const retry = useCallback((medicamentoId: number) => {
+    fetchAgendas(medicamentoId);
+  }, [fetchAgendas]);
 
   return {
     agendas,

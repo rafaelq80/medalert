@@ -1,10 +1,15 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 class LoginRequest(BaseModel):
-    email: str
-    senha: str
+    email: EmailStr
+    senha: str = Field(min_length=1)
     push_token: str | None = None
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def normalize_email(cls, v: str) -> str:
+        return v.strip().lower()
 
 
 class TokenResponse(BaseModel):
@@ -14,4 +19,4 @@ class TokenResponse(BaseModel):
 
 
 class RefreshRequest(BaseModel):
-    refresh_token: str
+    refresh_token: str = Field(min_length=1)

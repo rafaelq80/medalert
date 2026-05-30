@@ -9,6 +9,7 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Toast } from '../../components/Toast';
+import { useToast } from '../../hooks/useToast';
 import { StyleSheet } from 'react-native-unistyles';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -37,8 +38,7 @@ const TYPE_LABELS: Record<string, string> = {
 export function UserManagementScreen() {
   const navigation = useNavigation<NavigationProp>();
 
-  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' as 'success' | 'error' | 'info' });
-  const showToast = (message: string, type: 'success' | 'error' | 'info') => setToast({ visible: true, message, type });
+  const { toast, showToast, hideToast } = useToast();
 
   const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([]);
   const [loading, setLoading] = useState(true);
@@ -172,16 +172,16 @@ export function UserManagementScreen() {
       accessibilityRole="button"
       accessibilityLabel={`Usuário ${item.nome}, ${TYPE_LABELS[item.tipo]}, ${item.ativo ? 'ativo' : 'inativo'}`}
     >
-      <View style={styles.badgeWrapper}>
-        <UserBadge nome={item.nome} size={38} />
-        <View style={[styles.statusDot, item.ativo ? styles.statusActive : styles.statusInactive]} />
-      </View>
+      <UserBadge nome={item.nome} size={38} />
       <View style={styles.userInfo}>
         <Text style={styles.userName}>{item.nome}</Text>
         <Text style={styles.userEmail}>{item.email}</Text>
       </View>
-      <View style={[styles.typeBadge, getTypeBadgeStyle(item.tipo)]}>
-        <Text style={[styles.typeBadgeText, { color: getTypeBadgeTextColor(item.tipo) }]}>{TYPE_LABELS[item.tipo]}</Text>
+      <View style={styles.tagRow}>
+        <View style={[styles.typeBadge, getTypeBadgeStyle(item.tipo)]}>
+          <Text style={[styles.typeBadgeText, { color: getTypeBadgeTextColor(item.tipo) }]}>{TYPE_LABELS[item.tipo]}</Text>
+        </View>
+        {item.ativo && <View style={styles.statusDot} />}
       </View>
     </TouchableOpacity>
   );
@@ -206,7 +206,7 @@ export function UserManagementScreen() {
 
   return (
     <View style={styles.container}>
-      <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={() => setToast(t => ({ ...t, visible: false }))} />
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={hideToast} />
 
       {/* Section title */}
       <View style={styles.sectionHeader}>
@@ -215,6 +215,7 @@ export function UserManagementScreen() {
       </View>
 
       <View style={styles.searchContainer}>
+        <Ionicons name="search" size={16} color={styles.onSurfaceVariantColor.color} />
         <TextInput
           style={styles.searchInput}
           placeholder="Buscar por nome ou email..."
@@ -308,11 +309,9 @@ const styles = StyleSheet.create(theme => ({
     paddingBottom: 6,
   },
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: theme.onSurfaceVariant,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.screenTitleColor,
   },
   sectionCount: {
     fontSize: 13,
@@ -325,22 +324,26 @@ const styles = StyleSheet.create(theme => ({
     overflow: 'hidden',
   },
   searchContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 8,
+    backgroundColor: theme.surfaceLow,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.outline,
+    paddingHorizontal: 12,
+    minHeight: 40,
   },
   searchInput: {
-    backgroundColor: theme.surfaceCard,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
+    flex: 1,
+    fontSize: 15,
     color: theme.onSurface,
-    borderWidth: 1,
-    borderColor: theme.outlineVariant,
   },
   filtersContainer: {
     flexDirection: 'row',
+    justifyContent: 'center',
     paddingHorizontal: 16,
     paddingBottom: 12,
     gap: 8,
@@ -406,18 +409,16 @@ const styles = StyleSheet.create(theme => ({
     color: theme.onSurfaceVariant,
     marginTop: 2,
   },
-  badgeWrapper: {
-    position: 'relative',
+  tagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   statusDot: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 2,
-    borderColor: '#252525',
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#66bb6a',
   },
   typeBadge: {
     minWidth: 90,

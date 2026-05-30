@@ -99,3 +99,8 @@ export interface Categoria {
   nome: string;
   descricao?: string;
 }
+
+export interface PacienteOption {
+  id: number;
+  label: string;
+}

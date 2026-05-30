@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { usePreferences } from '../../contexts/ThemeContext';
 import { UserBadge } from '../../components/UserBadge';
 import { Toast } from '../../components/Toast';
+import { useToast } from '../../hooks/useToast';
 import { BottomSheet } from '../../components/BottomSheet';
 import { api } from '../../services/api';
 import { common, sp } from '../../styles';
@@ -30,10 +31,8 @@ export function AdminPerfilScreen() {
   const [senhaAtual, setSenhaAtual] = useState('');
   const [senhaNova, setSenhaNova] = useState('');
   const [changingPw, setChangingPw] = useState(false);
-  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' as 'success' | 'error' | 'info' });
+  const { toast, showToast, hideToast } = useToast();
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
-
-  const showToast = (message: string, type: 'success' | 'error' | 'info') => setToast({ visible: true, message, type });
 
   const handleSave = useCallback(async () => {
     if (!editNome.trim()) { showToast('Nome obrigatório.', 'error'); return; }
@@ -60,7 +59,7 @@ export function AdminPerfilScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={() => setToast(t => ({ ...t, visible: false }))} />
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={hideToast} />
       <ScrollView style={styles.screen} contentContainerStyle={{ paddingHorizontal: sp.xl, paddingTop: sp.xl, paddingBottom: 40 }}>
         {/* Avatar */}
         <View style={styles.avatarSection}>

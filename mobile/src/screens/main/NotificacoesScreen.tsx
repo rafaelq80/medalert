@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, FlatList, RefreshControl, Vibration } from 'react-native';
+import { View, Text, FlatList, RefreshControl, Vibration, ActivityIndicator } from 'react-native';
 import { StyleSheet } from 'react-native-unistyles';
 import { useNotificacoes } from '../../hooks/useNotificacoes';
 import { NotificacaoItem } from '../../components/NotificacaoItem';
@@ -18,8 +18,11 @@ export function NotificacoesScreen() {
     selectedPacienteId,
     isLoading,
     isRefreshing,
+    isLoadingMore,
+    hasMore,
     error,
     handleRefresh,
+    handleLoadMore,
     handleMarkAsRead,
     handleSelectPaciente,
     retry,
@@ -108,6 +111,15 @@ export function NotificacoesScreen() {
             subtitle="Você será notificado sobre tomadas e retornos médicos."
           />
         }
+        ListFooterComponent={
+          isLoadingMore ? (
+            <View style={styles.footer}>
+              <ActivityIndicator size="small" color={styles.refreshColor.color} />
+            </View>
+          ) : null
+        }
+        onEndReached={hasMore ? handleLoadMore : undefined}
+        onEndReachedThreshold={0.3}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -173,5 +185,9 @@ const styles = StyleSheet.create(theme => ({
   },
   refreshColor: {
     color: theme.primaryContainer,
+  },
+  footer: {
+    paddingVertical: 16,
+    alignItems: 'center',
   },
 }));

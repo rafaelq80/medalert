@@ -338,12 +338,13 @@ async def job_alertas_retorno_medico():
             today = now.date()
             seven_days_ahead = today + timedelta(days=7)
 
-            # Find medicamentos that need return appointment soon
+            # Find medicamentos that need return appointment soon (only future dates)
             result = await db.execute(
                 select(Medicamento).where(
                     Medicamento.necessita_retorno == True,
                     Medicamento.ativo == True,
                     Medicamento.data_proximo_retorno != None,
+                    Medicamento.data_proximo_retorno >= today,
                     Medicamento.data_proximo_retorno <= seven_days_ahead,
                 )
             )
@@ -456,7 +457,11 @@ async def job_alertas_retorno_medico():
 
 
 def _is_valid_day(agenda, today: date) -> bool:
-    """Check if today is a valid day for the given agenda based on frequency."""
+    """
+    Check if today is a valid day for the given agenda based on frequency.
+    dias_semana uses ISO format: 1=Monday, 7=Sunday (matches mobile).
+    Python weekday(): 0=Monday, 6=Sunday. So we add 1 to convert.
+    """
     from app.modules.agendas.models import FrequenciaTomada
 
     if agenda.frequencia == FrequenciaTomada.DIARIA:
@@ -465,8 +470,10 @@ def _is_valid_day(agenda, today: date) -> bool:
     if agenda.frequencia in (FrequenciaTomada.SEMANAL, FrequenciaTomada.PERSONALIZADA):
         if not agenda.dias_semana:
             return True
-        # dias_semana is stored as "1,3,5" where 0=Monday, 6=Sunday
+        # dias_semana stored as "1,3,5" where 1=Monday, 7=Sunday (ISO weekday)
         dias = [int(d.strip()) for d in agenda.dias_semana.split(",") if d.strip()]
-        return today.weekday() in dias
+        # Python weekday() returns 0=Monday, so add 1 to match ISO format
+        today_iso = today.weekday() + 1
+        return today_iso in dias
 
     return True

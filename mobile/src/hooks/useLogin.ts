@@ -31,7 +31,7 @@ export function useLogin(): UseLoginReturn {
     setLoading(true);
     setError(null);
     try {
-      await login(data.email.trim(), data.senha);
+      await login(data.email.trim().toLowerCase(), data.senha);
     } catch {
       setError('E-mail ou senha inválidos');
     } finally {

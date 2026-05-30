@@ -7,6 +7,7 @@ import {
   Text,
   TextInput,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet } from 'react-native-unistyles';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -185,7 +186,7 @@ export function MedicamentosScreen() {
         accessibilityLabel="Adicionar novo medicamento"
         accessibilityRole="button"
       >
-        <Text style={styles.fabText}>+</Text>
+        <Ionicons name="add" size={26} color={styles.onPrimaryColor.color} />
       </TouchableOpacity>
 
       {/* Delete confirmation bottom sheet */}
@@ -228,7 +229,7 @@ const styles = StyleSheet.create(theme => ({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.onSurface,
+    color: theme.screenTitleColor,
   },
   pacienteSubtitle: {
     fontSize: 15,
@@ -275,11 +276,8 @@ const styles = StyleSheet.create(theme => ({
     shadowOpacity: 0.25,
     shadowRadius: 4,
   },
-  fabText: {
-    fontSize: 28,
+  onPrimaryColor: {
     color: theme.onPrimary,
-    fontWeight: '600',
-    lineHeight: 30,
   },
   placeholderColor: {
     color: theme.onSurfaceVariant,

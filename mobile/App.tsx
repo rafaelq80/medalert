@@ -1,12 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Image, Animated, StatusBar as RNStatusBar } from 'react-native';
-import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
+import { NavigationContainer } from '@react-navigation/native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './src/contexts/AuthContext';
 import { PreferencesProvider } from './src/contexts/ThemeContext';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { setupNotificationHandlers } from './src/services/pushService';
 import { UnistylesRuntime, useUnistyles } from 'react-native-unistyles';
 import { StyleSheet } from 'react-native-unistyles';
+import { buildNavTheme } from './src/styles/navTheme';
 
 function SplashScreen({ onFinish }: { onFinish: () => void }) {
   const opacity = useRef(new Animated.Value(0)).current;
@@ -41,6 +44,15 @@ function SplashScreen({ onFinish }: { onFinish: () => void }) {
   );
 }
 
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 2, // 2 minutes
+      retry: 1,
+    },
+  },
+});
+
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
 
@@ -49,16 +61,15 @@ export default function App() {
     return cleanup;
   }, []);
 
-  const { rt } = useUnistyles();
+  const { rt, theme } = useUnistyles();
   const isDark = rt.themeName === 'dark';
-
-  const navTheme = isDark
-    ? { ...DarkTheme, colors: { ...DarkTheme.colors, background: '#181818', card: '#1e1e1e', text: '#e8e8e8', border: '#3a3a3a', primary: '#4dd0e1', notification: '#ef5350' } }
-    : { ...DefaultTheme, colors: { ...DefaultTheme.colors, background: '#F8F9FA', card: '#f9f9ff', text: '#191c21', border: '#c2c6d4', primary: '#0056b3', notification: '#DC3545' } };
+  const navTheme = buildNavTheme(isDark, theme as unknown as Record<string, string>);
 
   return (
-    <PreferencesProvider>
-      <AuthProvider>
+    <QueryClientProvider client={queryClient}>
+    <ErrorBoundary>
+      <PreferencesProvider>
+        <AuthProvider>
         <NavigationContainer theme={navTheme}>
           <RNStatusBar
             barStyle={isDark ? 'light-content' : 'dark-content'}
@@ -70,6 +81,8 @@ export default function App() {
         </NavigationContainer>
       </AuthProvider>
     </PreferencesProvider>
+    </ErrorBoundary>
+    </QueryClientProvider>
   );
 }
 

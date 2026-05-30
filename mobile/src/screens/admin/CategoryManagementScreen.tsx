@@ -21,6 +21,7 @@ import {
 } from '../../services/adminApi';
 import { BottomSheet } from '../../components/BottomSheet';
 import { Toast } from '../../components/Toast';
+import { useToast } from '../../hooks/useToast';
 
 export function CategoryManagementScreen() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -33,11 +34,7 @@ export function CategoryManagementScreen() {
   const [descricao, setDescricao] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<Categoria | null>(null);
-  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' as 'success' | 'error' | 'info' });
-
-  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
-    setToast({ visible: true, message, type });
-  };
+  const { toast, showToast, hideToast } = useToast();
 
   const fetchCategorias = useCallback(async () => {
     try {
@@ -135,7 +132,7 @@ export function CategoryManagementScreen() {
 
   return (
     <View style={styles.container}>
-      <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={() => setToast((t) => ({ ...t, visible: false }))} />
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={hideToast} />
 
       {/* Section title + search */}
       <View style={styles.header}>
@@ -219,9 +216,9 @@ const styles = StyleSheet.create(theme => ({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.backgroundApp },
   header: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingTop: 14, paddingBottom: 6,
+    paddingHorizontal: 16, paddingTop: 14, paddingBottom: 6,
   },
-  sectionTitle: { fontSize: 13, fontWeight: '500', color: theme.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionTitle: { fontSize: 18, fontWeight: '600', color: theme.screenTitleColor},
   count: {
     fontSize: 13, fontWeight: '500', color: theme.onSurfaceVariant,
     backgroundColor: theme.surfaceHigh, borderRadius: 9999,
@@ -229,7 +226,7 @@ const styles = StyleSheet.create(theme => ({
   },
   searchContainer: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    marginHorizontal: 20, marginBottom: 8,
+    marginHorizontal: 16, marginBottom: 8,
     backgroundColor: theme.surfaceLow, borderRadius: 8,
     borderWidth: 1, borderColor: theme.outline, paddingHorizontal: 12, minHeight: 40,
   },
@@ -253,7 +250,7 @@ const styles = StyleSheet.create(theme => ({
   cardDesc: { fontSize: 13, fontWeight: '500', color: theme.onSurfaceVariant, marginTop: 2 },
   deleteBtn: { padding: 8 },
   fab: {
-    position: 'absolute', bottom: 24, right: 24, width: 52, height: 52, borderRadius: 26,
+    position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28,
     backgroundColor: theme.primaryContainer, justifyContent: 'center', alignItems: 'center',
     elevation: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 4,
   },

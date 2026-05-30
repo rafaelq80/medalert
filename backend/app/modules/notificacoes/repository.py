@@ -16,12 +16,14 @@ async def create(data: dict, db: AsyncSession) -> Notificacao:
     return notificacao
 
 
-async def list_by_usuario(usuario_id: int, db: AsyncSession) -> list[Notificacao]:
-    """List all notificacoes for a given usuario, ordered by most recent."""
+async def list_by_usuario(usuario_id: int, db: AsyncSession, limit: int = 50, offset: int = 0) -> list[Notificacao]:
+    """List notificacoes for a given usuario, ordered by most recent, with pagination."""
     result = await db.execute(
         select(Notificacao)
         .where(Notificacao.usuario_id == usuario_id)
         .order_by(Notificacao.enviado_em.desc())
+        .limit(limit)
+        .offset(offset)
     )
     return list(result.scalars().all())
 

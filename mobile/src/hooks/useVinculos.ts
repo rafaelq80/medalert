@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
-import { Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../services/api';
+import { isHttpStatus, getApiErrorMessage } from '../utils/errors';
 import { Vinculo } from '../types';
 
 export interface UseVinculosReturn {
@@ -10,8 +10,8 @@ export interface UseVinculosReturn {
   isRefreshing: boolean;
   error: string | null;
   handleRefresh: () => void;
-  handleCreate: (pacienteId: number) => Promise<boolean>;
-  handleDelete: (vinculo: Vinculo) => void;
+  handleCreate: (pacienteId: number) => Promise<{ success: boolean; error?: string }>;
+  handleDelete: (vinculo: Vinculo) => Promise<boolean>;
   retry: () => void;
 }
 
@@ -46,47 +46,30 @@ export function useVinculos(): UseVinculosReturn {
     fetchVinculos();
   }, [fetchVinculos]);
 
-  const handleCreate = useCallback(async (pacienteId: number): Promise<boolean> => {
+  const handleCreate = useCallback(async (pacienteId: number): Promise<{ success: boolean; error?: string }> => {
     try {
-      const { data } = await api.post<Vinculo>('/vinculos', {
-        paciente_id: pacienteId,
-      });
+      const { data } = await api.post<Vinculo>('/vinculos', { paciente_id: pacienteId });
       setVinculos((prev) => [...prev, data]);
-      return true;
-    } catch (err: unknown) {
-      const axiosErr = err as { response?: { status?: number; data?: { detail?: string } } };
-      if (axiosErr.response?.status === 409) {
-        Alert.alert('Erro', 'Já existe um vínculo ativo com este paciente.');
-      } else if (axiosErr.response?.status === 404) {
-        Alert.alert('Erro', 'Paciente não encontrado. Verifique o ID informado.');
-      } else {
-        Alert.alert('Erro', axiosErr.response?.data?.detail || 'Não foi possível criar o vínculo.');
+      return { success: true };
+    } catch (err) {
+      if (isHttpStatus(err, 409)) {
+        return { success: false, error: 'Já existe um vínculo ativo com este paciente.' };
       }
-      return false;
+      if (isHttpStatus(err, 404)) {
+        return { success: false, error: 'Paciente não encontrado.' };
+      }
+      return { success: false, error: getApiErrorMessage(err, 'Não foi possível criar o vínculo.') };
     }
   }, []);
 
-  const handleDelete = useCallback((vinculo: Vinculo) => {
-    const nome = vinculo.paciente_nome || `paciente #${vinculo.paciente_id}`;
-    Alert.alert(
-      'Remover vínculo',
-      `Deseja realmente remover o vínculo com ${nome}?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Remover',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await api.delete(`/vinculos/${vinculo.id}`);
-              setVinculos((prev) => prev.filter((v) => v.id !== vinculo.id));
-            } catch {
-              Alert.alert('Erro', 'Não foi possível remover o vínculo.');
-            }
-          },
-        },
-      ]
-    );
+  const handleDelete = useCallback(async (vinculo: Vinculo): Promise<boolean> => {
+    try {
+      await api.delete(`/vinculos/${vinculo.id}`);
+      setVinculos((prev) => prev.filter((v) => v.id !== vinculo.id));
+      return true;
+    } catch {
+      return false;
+    }
   }, []);
 
   const retry = useCallback(() => {

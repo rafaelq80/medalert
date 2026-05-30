@@ -19,6 +19,7 @@ import { ErrorState } from '../../components/ErrorState';
 import { ListSkeleton } from '../../components/SkeletonLoader';
 import { BottomSheet } from '../../components/BottomSheet';
 import { Toast } from '../../components/Toast';
+import { useToast } from '../../hooks/useToast';
 import { UserBadge } from '../../components/UserBadge';
 import { api } from '../../services/api';
 import { Vinculo } from '../../types';
@@ -50,14 +51,10 @@ export function VinculosScreen() {
   const [pacienteEncontrado, setPacienteEncontrado] = useState<PacienteBusca | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Vinculo | null>(null);
-  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' as 'success' | 'error' | 'info' });
-
-  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
-    setToast({ visible: true, message, type });
-  };
+  const { toast, showToast, hideToast } = useToast();
 
   const handleSearch = async () => {
-    const email = emailInput.trim();
+    const email = emailInput.trim().toLowerCase();
     if (!email) {
       setSearchError('Informe o e-mail do paciente.');
       return;
@@ -137,11 +134,11 @@ export function VinculosScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={() => setToast((t) => ({ ...t, visible: false }))} />
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={hideToast} />
 
       {/* Section header */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Pacientes vinculados</Text>
+        <Text style={styles.sectionTitle}>Vínculos</Text>
         <Text style={styles.sectionCount}>{vinculos.length}</Text>
       </View>
 
@@ -255,7 +252,7 @@ const styles = StyleSheet.create(theme => ({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: 20, paddingTop: 14, paddingBottom: 6,
   },
-  sectionTitle: { fontSize: 13, fontWeight: '500', color: theme.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionTitle: { fontSize: 18, fontWeight: '600', color: theme.screenTitleColor},
   sectionCount: {
     fontSize: 13, fontWeight: '500', color: theme.onSurfaceVariant,
     backgroundColor: theme.surfaceHigh, borderRadius: 9999,
@@ -307,7 +304,7 @@ const styles = StyleSheet.create(theme => ({
   },
   linkBtnText: { fontSize: 13, fontWeight: '500', color: theme.onSecondary },
   fab: {
-    position: 'absolute', bottom: 24, right: 24, width: 52, height: 52, borderRadius: 26,
+    position: 'absolute', bottom: 24, right: 24, width: 56, height: 56, borderRadius: 28,
     backgroundColor: theme.primaryContainer, justifyContent: 'center', alignItems: 'center',
     elevation: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 4,
   },

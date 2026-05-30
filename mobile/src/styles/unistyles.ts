@@ -43,6 +43,15 @@ const lightTheme = {
   inputPlaceholder: '#727784',
   // Screen title
   screenTitleColor: '#003f87',
+  // Typography tokens
+  text: {
+    title: { fontSize: 22, fontWeight: '700' as const, lineHeight: 28 },
+    subtitle: { fontSize: 18, fontWeight: '600' as const, lineHeight: 24 },
+    label: { fontSize: 14, fontWeight: '600' as const, lineHeight: 20 },
+    body: { fontSize: 15, fontWeight: '400' as const, lineHeight: 22 },
+    caption: { fontSize: 12, fontWeight: '500' as const, lineHeight: 16 },
+    button: { fontSize: 14, fontWeight: '600' as const, lineHeight: 20 },
+  },
 } as const;
 
 const darkTheme = {
@@ -88,6 +97,15 @@ const darkTheme = {
   inputPlaceholder: '#727784',
   // Screen title
   screenTitleColor: '#FFFFFF',
+  // Typography tokens
+  text: {
+    title: { fontSize: 22, fontWeight: '700' as const, lineHeight: 28 },
+    subtitle: { fontSize: 18, fontWeight: '600' as const, lineHeight: 24 },
+    label: { fontSize: 14, fontWeight: '600' as const, lineHeight: 20 },
+    body: { fontSize: 15, fontWeight: '400' as const, lineHeight: 22 },
+    caption: { fontSize: 12, fontWeight: '500' as const, lineHeight: 16 },
+    button: { fontSize: 14, fontWeight: '600' as const, lineHeight: 20 },
+  },
 } as const;
 
 const appThemes = { light: lightTheme, dark: darkTheme };

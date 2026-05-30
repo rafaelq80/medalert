@@ -3,13 +3,8 @@ import { useFocusEffect } from '@react-navigation/native';
 import { subDays, format } from 'date-fns';
 import { useUnistyles } from 'react-native-unistyles';
 import { api } from '../services/api';
-import { useAuth } from '../contexts/AuthContext';
-import { RegistroTomada, Vinculo } from '../types';
-
-export interface PacienteOption {
-  id: number;
-  label: string;
-}
+import { usePacienteSelector } from './usePacienteSelector';
+import { RegistroTomada, PacienteOption } from '../types';
 
 export interface UseHistoricoReturn {
   registros: RegistroTomada[];
@@ -31,85 +26,43 @@ export interface UseHistoricoReturn {
 }
 
 export function useHistorico(): UseHistoricoReturn {
-  const { user } = useAuth();
   const { theme } = useUnistyles();
+  const { pacientes, selectedPacienteId, pacienteNome, handleSelectPaciente, loadPacientes } = usePacienteSelector();
   const [registros, setRegistros] = useState<RegistroTomada[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<7 | 15 | 30>(7);
-  const [pacienteNome, setPacienteNome] = useState<string | null>(null);
-  const [pacientes, setPacientes] = useState<PacienteOption[]>([]);
-  const [selectedPacienteId, setSelectedPacienteId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRegistrosForPaciente = useCallback(async (pacienteId: number) => {
+  const fetchRegistrosForPaciente = useCallback(async (pacienteId: number, period: number) => {
     const today = new Date();
-    const startDate = subDays(today, selectedPeriod);
-    const dataInicio = format(startDate, 'yyyy-MM-dd');
-    const dataFim = format(today, 'yyyy-MM-dd');
-
+    const startDate = subDays(today, period);
     const { data } = await api.get<{ registros: RegistroTomada[] }>(
       `/pacientes/${pacienteId}/registros-tomada`,
-      { params: { data_inicio: dataInicio, data_fim: dataFim } }
+      { params: { data_inicio: format(startDate, 'yyyy-MM-dd'), data_fim: format(today, 'yyyy-MM-dd') } }
     );
-
-    const sorted = data.registros.sort(
-      (a, b) =>
-        new Date(b.data_hora_prevista).getTime() -
-        new Date(a.data_hora_prevista).getTime()
+    return data.registros.sort(
+      (a, b) => new Date(b.data_hora_prevista).getTime() - new Date(a.data_hora_prevista).getTime()
     );
-
-    setRegistros(sorted);
-  }, [selectedPeriod]);
+  }, []);
 
   const fetchRegistros = useCallback(async () => {
-    if (!user) return;
-
     try {
       setError(null);
-
-      if (user.tipo === 'PACIENTE') {
-        setSelectedPacienteId(user.id);
-        setPacienteNome(null);
-        setPacientes([]);
-        await fetchRegistrosForPaciente(user.id);
-      } else {
-        const { data: vinculos } = await api.get<Vinculo[]>('/vinculos');
-        const activeVinculos = vinculos.filter((v) => v.ativo);
-
-        if (activeVinculos.length === 0) {
-          setRegistros([]);
-          setPacienteNome(null);
-          setPacientes([]);
-          setSelectedPacienteId(null);
-          setIsLoading(false);
-          setIsRefreshing(false);
-          return;
-        }
-
-        const options: PacienteOption[] = activeVinculos.map((v) => ({
-          id: v.paciente_id,
-          label: v.paciente_nome || `Paciente #${v.paciente_id}`,
-        }));
-        setPacientes(options);
-
-        // Keep current selection if still valid
-        const currentValid = selectedPacienteId && options.some((o) => o.id === selectedPacienteId);
-        const targetId = currentValid ? selectedPacienteId! : options[0].id;
-        setSelectedPacienteId(targetId);
-
-        const selected = options.find((o) => o.id === targetId);
-        setPacienteNome(selected?.label || null);
-
-        await fetchRegistrosForPaciente(targetId);
+      const targetId = await loadPacientes();
+      if (!targetId) {
+        setRegistros([]);
+        return;
       }
+      const sorted = await fetchRegistrosForPaciente(targetId, selectedPeriod);
+      setRegistros(sorted);
     } catch {
       setError('Não foi possível carregar o histórico. Tente novamente.');
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [user, selectedPeriod, selectedPacienteId, fetchRegistrosForPaciente]);
+  }, [loadPacientes, fetchRegistrosForPaciente, selectedPeriod]);
 
   useFocusEffect(
     useCallback(() => {
@@ -127,34 +80,29 @@ export function useHistorico(): UseHistoricoReturn {
     setSelectedPeriod(days);
   }, []);
 
-  const handleSelectPaciente = useCallback(async (id: number) => {
-    setSelectedPacienteId(id);
-    const selected = pacientes.find((p) => p.id === id);
-    setPacienteNome(selected?.label || null);
+  const onSelectPaciente = useCallback(async (id: number) => {
+    handleSelectPaciente(id);
     setIsLoading(true);
     try {
-      await fetchRegistrosForPaciente(id);
+      const sorted = await fetchRegistrosForPaciente(id, selectedPeriod);
+      setRegistros(sorted);
     } catch {
       setError('Não foi possível carregar o histórico.');
     } finally {
       setIsLoading(false);
     }
-  }, [pacientes, fetchRegistrosForPaciente]);
+  }, [handleSelectPaciente, fetchRegistrosForPaciente, selectedPeriod]);
 
   const confirmedCount = useMemo(
     () => registros.filter((r) => r.status === 'CONFIRMADO').length,
     [registros]
   );
-
   const totalCount = registros.length;
-
   const adherencePercentage = useMemo(
     () => (totalCount > 0 ? Math.round((confirmedCount / totalCount) * 100) : 0),
     [confirmedCount, totalCount]
   );
-
-  const adherenceColor =
-    adherencePercentage >= 80 ? theme.statusConfirmed : theme.statusDelayed;
+  const adherenceColor = adherencePercentage >= 80 ? theme.statusConfirmed : theme.statusDelayed;
 
   const retry = useCallback(() => {
     setIsLoading(true);
@@ -176,7 +124,7 @@ export function useHistorico(): UseHistoricoReturn {
     totalCount,
     handleRefresh,
     handlePeriodChange,
-    handleSelectPaciente,
+    handleSelectPaciente: onSelectPaciente,
     retry,
   };
 }

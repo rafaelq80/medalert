@@ -1,13 +1,14 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { View, Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
 import { StyleSheet, useUnistyles } from 'react-native-unistyles';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { api } from '../services/api';
-import { UserBadge } from '../components/UserBadge';
+import { AppHeader } from '../components/AppHeader';
 import { OfflineBanner } from '../components/OfflineBanner';
+import { queryKeys } from '../services/queryKeys';
 import { AgendaScreen } from '../screens/main/AgendaScreen';
 import { HistoricoScreen } from '../screens/main/HistoricoScreen';
 import { NotificacoesScreen } from '../screens/main/NotificacoesScreen';
@@ -28,16 +29,7 @@ export type MainTabParamList = {
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
 function UserHeader() {
-  const { user } = useAuth();
-  const { theme } = useUnistyles();
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-      <UserBadge nome={user?.nome ?? 'U'} size={30} />
-      <Text style={{ fontSize: 16, fontWeight: '600', color: theme.onSurface, maxWidth: 200 }} numberOfLines={1}>
-        {user?.nome}
-      </Text>
-    </View>
-  );
+  return <AppHeader />;
 }
 
 export function MainTabNavigator() {
@@ -48,19 +40,20 @@ export function MainTabNavigator() {
 
   const [unreadCount, setUnreadCount] = useState(0);
 
-  useFocusEffect(
-    useCallback(() => {
-      const fetchUnread = async () => {
-        try {
-          const { data } = await api.get<Notificacao[]>('/notificacoes');
-          setUnreadCount(data.filter((n) => !n.lido_em).length);
-        } catch {}
-      };
-      fetchUnread();
-      const interval = setInterval(fetchUnread, 30000);
-      return () => clearInterval(interval);
-    }, [])
-  );
+  // Use react-query with refetchInterval instead of manual polling
+  useQuery({
+    queryKey: queryKeys.notificacoes,
+    queryFn: async () => {
+      const { data } = await api.get<Notificacao[]>('/notificacoes', {
+        params: { page: 1, size: 5 },
+      });
+      const count = data.filter((n) => !n.lido_em).length;
+      setUnreadCount(count);
+      return data;
+    },
+    refetchInterval: 60000, // 60s — more battery-friendly than 30s
+    refetchIntervalInBackground: false,
+  });
 
   return (
     <View style={{ flex: 1 }}>

@@ -1,28 +1,28 @@
 from datetime import date, datetime
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class MedicamentoCreate(BaseModel):
-    nome: str
-    dosagem: str
-    instrucoes: str
+    nome: str = Field(min_length=1, max_length=255)
+    dosagem: str = Field(min_length=1, max_length=100)
+    instrucoes: str = Field(min_length=1, max_length=2000)
     uso_continuo: bool
     necessita_retorno: bool
-    intervalo_retorno_dias: int | None = None
-    categoria_id: int | None = None
+    intervalo_retorno_dias: int | None = Field(default=None, ge=1, le=365)
+    categoria_id: int | None = Field(default=None, gt=0)
     data_inicio_tratamento: date
 
 
 class MedicamentoUpdate(BaseModel):
-    nome: str | None = None
-    dosagem: str | None = None
-    instrucoes: str | None = None
+    nome: str | None = Field(default=None, min_length=1, max_length=255)
+    dosagem: str | None = Field(default=None, min_length=1, max_length=100)
+    instrucoes: str | None = Field(default=None, min_length=1, max_length=2000)
     uso_continuo: bool | None = None
     necessita_retorno: bool | None = None
-    intervalo_retorno_dias: int | None = None
-    categoria_id: int | None = None
+    intervalo_retorno_dias: int | None = Field(default=None, ge=1, le=365)
+    categoria_id: int | None = Field(default=None, gt=0)
 
 
 class MedicamentoResponse(BaseModel):

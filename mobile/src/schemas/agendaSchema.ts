@@ -6,7 +6,7 @@ export const agendaSchema = z.object({
     error: 'Frequência é obrigatória',
   }),
   dias_semana: z.string().optional(),
-  tolerancia_minutos: z.number().int().min(1).default(30),
+  tolerancia_minutos: z.number().int().min(1).max(120).default(30),
   data_inicio: z
     .string()
     .min(1, 'Data de início é obrigatória')

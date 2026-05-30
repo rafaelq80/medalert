@@ -12,9 +12,12 @@ from app.modules.usuarios.models import Usuario
 async def list_notificacoes(
     current_user: Usuario,
     db: AsyncSession,
+    page: int = 1,
+    size: int = 50,
 ) -> list[NotificacaoResponse]:
     """Return notifications for the authenticated user, enriched with context."""
-    notificacoes = await list_by_usuario(current_user.id, db)
+    offset = (page - 1) * size
+    notificacoes = await list_by_usuario(current_user.id, db, limit=size, offset=offset)
 
     enriched = []
     for n in notificacoes:

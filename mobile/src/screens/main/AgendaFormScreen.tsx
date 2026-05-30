@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { Toast } from '../../components/Toast';
+import { useToast } from '../../hooks/useToast';
 import { StyleSheet } from 'react-native-unistyles';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { useForm, Controller } from 'react-hook-form';
@@ -53,8 +54,7 @@ export function AgendaFormScreen({ route, navigation }: Props) {
 
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' as 'success' | 'error' | 'info' });
-  const showToast = (message: string, type: 'success' | 'error' | 'info') => setToast({ visible: true, message, type });
+  const { toast, showToast, hideToast } = useToast();
 
   const { control, handleSubmit, watch, setValue, reset } = useForm<AgendaFormValues>({
     mode: 'onBlur',
@@ -164,7 +164,7 @@ export function AgendaFormScreen({ route, navigation }: Props) {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
-        <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={() => setToast(t => ({ ...t, visible: false }))} />
+        <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={hideToast} />
         <Text style={styles.title}>Horários de Tomada</Text>
         <Text style={styles.subtitle}>{medicamentoNome}</Text>
 
@@ -361,7 +361,7 @@ const styles = StyleSheet.create(theme => ({
     paddingBottom: 40,
     gap: 16,
   },
-  title: { fontSize: 22, fontWeight: '700', lineHeight: 28, color: theme.primary },
+  title: { fontSize: 18, fontWeight: '600', color: theme.screenTitleColor },
   subtitle: { fontSize: 14, fontWeight: '400', lineHeight: 20, color: theme.onSurfaceVariant, marginBottom: 8 },
   sectionTitle: { fontSize: 14, fontWeight: '600', lineHeight: 20, color: theme.onSurface, marginBottom: 8 },
   label: { fontSize: 14, fontWeight: '600', lineHeight: 20, color: theme.onSurface },
