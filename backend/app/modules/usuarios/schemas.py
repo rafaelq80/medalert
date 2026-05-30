@@ -74,6 +74,11 @@ class PushTokenUpdate(BaseModel):
     push_token: str
 
 
+class SenhaUpdate(BaseModel):
+    senha_atual: str
+    nova_senha: str
+
+
 class UsuarioBuscaResponse(BaseModel):
     """Response for patient search — exposes minimal data."""
 

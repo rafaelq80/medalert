@@ -2,12 +2,10 @@ import React from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
-import { colors } from '../constants/colors';
-import { typography, spacing, borderRadius } from '../constants/typography';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { RegistroTomada, StatusTomada } from '../types';
 import { extractTime } from '../utils/dateUtils';
 
@@ -16,13 +14,6 @@ interface RegistroTomadaCardProps {
   onConfirm: (id: number) => void;
   isConfirming?: boolean;
 }
-
-const STATUS_COLORS: Record<StatusTomada, string> = {
-  PENDENTE: colors.statusPending,
-  CONFIRMADO: colors.statusConfirmed,
-  ATRASADO: colors.statusDelayed,
-  IGNORADO: colors.statusIgnored,
-};
 
 const STATUS_LABELS: Record<StatusTomada, string> = {
   PENDENTE: 'Pendente',
@@ -36,6 +27,13 @@ export function RegistroTomadaCard({
   onConfirm,
   isConfirming = false,
 }: RegistroTomadaCardProps) {
+  const { theme } = useUnistyles();
+  const STATUS_COLORS: Record<StatusTomada, string> = {
+    PENDENTE: theme.statusPending,
+    CONFIRMADO: theme.statusConfirmed,
+    ATRASADO: theme.statusDelayed,
+    IGNORADO: theme.statusIgnored,
+  };
   const statusColor = STATUS_COLORS[registro.status];
   const isAtrasado = registro.status === 'ATRASADO';
 
@@ -86,7 +84,7 @@ export function RegistroTomadaCard({
           accessibilityRole="button"
         >
           {isConfirming ? (
-            <ActivityIndicator size="small" color={colors.onPrimary} />
+            <ActivityIndicator size="small" color={styles.onPrimaryColor.color} />
           ) : (
             <Text style={styles.confirmButtonText}>Confirmar</Text>
           )}
@@ -96,18 +94,18 @@ export function RegistroTomadaCard({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(theme => ({
   card: {
-    backgroundColor: colors.surfaceCard,
-    borderRadius: borderRadius.lg,
-    padding: spacing.cardPadding,
+    backgroundColor: theme.surfaceCard,
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
-    borderColor: colors.outlineVariant,
+    borderColor: theme.outlineVariant,
     borderLeftWidth: 4,
-    marginBottom: spacing.stackGap,
+    marginBottom: 12,
   },
   cardAtrasado: {
-    shadowColor: colors.statusDelayed,
+    shadowColor: theme.statusDelayed,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.15,
     shadowRadius: 6,
@@ -123,46 +121,53 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   medicationName: {
-    ...typography.labelLg,
-    color: colors.onSurface,
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.onSurface,
     flex: 1,
     marginRight: 8,
   },
   statusBadge: {
-    borderRadius: borderRadius.full,
+    borderRadius: 9999,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   statusText: {
-    ...typography.statusTag,
-    color: colors.onPrimary,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: theme.onPrimary,
   },
   dosage: {
-    ...typography.bodyMd,
-    color: colors.onSurfaceVariant,
+    fontSize: 15,
+    color: theme.onSurfaceVariant,
   },
   details: {
     marginBottom: 12,
   },
   time: {
-    ...typography.bodyMd,
-    color: colors.onSurface,
+    fontSize: 15,
+    color: theme.onSurface,
     marginBottom: 4,
   },
   instructions: {
-    ...typography.labelMd,
-    color: colors.onSurfaceVariant,
+    fontSize: 13,
+    fontWeight: '500',
+    color: theme.onSurfaceVariant,
   },
   confirmButton: {
-    backgroundColor: colors.primaryContainer,
-    borderRadius: borderRadius.default,
+    backgroundColor: theme.primaryContainer,
+    borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: spacing.touchTargetMin,
+    minHeight: 48,
   },
   confirmButtonText: {
-    ...typography.labelLg,
-    color: colors.onPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.onPrimary,
   },
-});
+  onPrimaryColor: { color: theme.onPrimary },
+}));

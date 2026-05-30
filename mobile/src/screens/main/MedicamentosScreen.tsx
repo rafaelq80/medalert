@@ -1,28 +1,31 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import {
   View,
   FlatList,
-  StyleSheet,
   RefreshControl,
   TouchableOpacity,
   Text,
+  TextInput,
 } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useMedicamentos } from '../../hooks/useMedicamentos';
 import { MedicamentoCard } from '../../components/MedicamentoCard';
 import { EmptyState } from '../../components/EmptyState';
 import { ErrorState } from '../../components/ErrorState';
-import { LoadingState } from '../../components/LoadingState';
 import { SelectDropdown } from '../../components/SelectDropdown';
+import { ListSkeleton } from '../../components/SkeletonLoader';
+import { BottomSheet } from '../../components/BottomSheet';
 import { Medicamento } from '../../types';
-import { colors } from '../../constants/colors';
-import { typography, spacing } from '../../constants/typography';
+
 import { MedicamentosStackParamList } from '../../navigation/MedicamentosNavigator';
+import { api } from '../../services/api';
 
 type NavigationProp = NativeStackNavigationProp<MedicamentosStackParamList, 'MedicamentosList'>;
 
 export function MedicamentosScreen() {
+  
   const navigation = useNavigation<NavigationProp>();
   const {
     medicamentos,
@@ -36,6 +39,21 @@ export function MedicamentosScreen() {
     handleSelectPaciente,
     retry,
   } = useMedicamentos();
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<Medicamento | null>(null);
+
+  // Filter medicamentos by search query
+  const filteredMedicamentos = useMemo(() => {
+    if (!searchQuery.trim()) return medicamentos;
+    const query = searchQuery.toLowerCase();
+    return medicamentos.filter(
+      (m) =>
+        m.nome.toLowerCase().includes(query) ||
+        m.dosagem.toLowerCase().includes(query) ||
+        (m.categoria_nome && m.categoria_nome.toLowerCase().includes(query))
+    );
+  }, [medicamentos, searchQuery]);
 
   const handleAddMedicamento = useCallback(() => {
     if (!pacienteId) return;
@@ -69,8 +87,15 @@ export function MedicamentosScreen() {
     [navigation]
   );
 
+  const handleConfirmDelete = useCallback(() => {
+    if (deleteTarget) {
+      handleDelete(deleteTarget);
+      setDeleteTarget(null);
+    }
+  }, [deleteTarget, handleDelete]);
+
   if (isLoading && pacientes.length === 0) {
-    return <LoadingState label="Carregando medicamentos" />;
+    return <ListSkeleton count={4} />;
   }
 
   if (error && pacientes.length === 0) {
@@ -81,58 +106,73 @@ export function MedicamentosScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Patient selector — shown when multiple vinculos */}
-      {pacientes.length > 1 && (
-        <View style={styles.pacienteSelectorContainer}>
+      {/* Section title + patient selector */}
+      <View style={styles.pacienteSelectorContainer}>
+        <Text style={styles.sectionTitle}>Medicamentos</Text>
+        {pacientes.length > 1 ? (
           <SelectDropdown
             options={pacientes}
             selectedId={pacienteId}
             onSelect={handleSelectPaciente}
-            label="Paciente"
             placeholder="Selecione o paciente"
+          />
+        ) : pacienteNome ? (
+          <Text style={styles.pacienteSubtitle}>{pacienteNome}</Text>
+        ) : null}
+      </View>
+
+      {/* Search bar */}
+      {medicamentos.length > 3 && (
+        <View style={styles.searchContainer}>
+          <TextInput
+            style={styles.searchInput}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder="Buscar medicamento..."
+            placeholderTextColor={styles.placeholderColor.color}
+            accessibilityLabel="Buscar medicamento"
           />
         </View>
       )}
 
-      {/* Single patient banner */}
-      {pacientes.length === 1 && pacienteNome && (
-        <View style={styles.pacienteBanner}>
-          <Text style={styles.pacienteBannerText}>💊 Medicamentos de {pacienteNome}</Text>
-        </View>
-      )}
-
       {isLoading ? (
-        <LoadingState label="Carregando medicamentos" />
+        <ListSkeleton count={3} />
       ) : error ? (
         <ErrorState message={error} onRetry={retry} />
       ) : (
         <FlatList
-          data={medicamentos}
+          data={filteredMedicamentos}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <MedicamentoCard
               medicamento={item}
               onPress={() => handleEditMedicamento(item)}
-              onLongPress={() => handleDelete(item)}
+              onLongPress={() => setDeleteTarget(item)}
               onManageAgendas={() => handleManageAgendas(item)}
             />
           )}
           contentContainerStyle={
-            medicamentos.length === 0 ? styles.emptyContainer : styles.listContent
+            filteredMedicamentos.length === 0 ? styles.emptyContainer : styles.listContent
           }
           ListEmptyComponent={
             <EmptyState
               emoji="💊"
-              title="Nenhum medicamento cadastrado"
-              subtitle="Adicione medicamentos para começar a gerenciar o tratamento."
+              title={searchQuery ? 'Nenhum resultado' : 'Nenhum medicamento cadastrado'}
+              subtitle={
+                searchQuery
+                  ? 'Tente buscar com outro termo.'
+                  : 'Adicione medicamentos para começar a gerenciar o tratamento.'
+              }
+              actionLabel={!searchQuery ? 'Adicionar Medicamento' : undefined}
+              onAction={!searchQuery ? handleAddMedicamento : undefined}
             />
           }
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
-              colors={[colors.primaryContainer]}
-              tintColor={colors.primaryContainer}
+              colors={[styles.refreshColor.color]}
+              tintColor={styles.refreshColor.color}
             />
           }
           accessibilityLabel="Lista de medicamentos"
@@ -147,42 +187,77 @@ export function MedicamentosScreen() {
       >
         <Text style={styles.fabText}>+</Text>
       </TouchableOpacity>
+
+      {/* Delete confirmation bottom sheet */}
+      <BottomSheet
+        visible={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Inativar Medicamento"
+        description={`Deseja realmente inativar "${deleteTarget?.nome}"? Esta ação pode ser revertida.`}
+        icon="💊"
+        actions={[
+          {
+            label: 'Inativar',
+            variant: 'destructive',
+            onPress: handleConfirmDelete,
+          },
+          {
+            label: 'Cancelar',
+            variant: 'cancel',
+            onPress: () => setDeleteTarget(null),
+          },
+        ]}
+      />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(theme => ({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundApp,
+    backgroundColor: theme.backgroundApp,
   },
   pacienteSelectorContainer: {
-    paddingHorizontal: spacing.marginMobile,
+    paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: colors.surfaceCard,
+    backgroundColor: theme.surfaceCard,
     borderBottomWidth: 1,
-    borderBottomColor: colors.outlineVariant,
+    borderBottomColor: theme.outlineVariant,
+    gap: 6,
   },
-  pacienteBanner: {
-    backgroundColor: colors.surfaceContainerLow,
-    paddingVertical: 10,
-    paddingHorizontal: spacing.marginMobile,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.outlineVariant,
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.onSurface,
   },
-  pacienteBannerText: {
-    ...typography.labelLg,
-    color: colors.primary,
+  pacienteSubtitle: {
+    fontSize: 15,
+    color: theme.onSurfaceVariant,
+  },
+  searchContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  searchInput: {
+    fontSize: 15,
+    backgroundColor: theme.surfaceLow,
+    borderWidth: 1,
+    borderColor: theme.outline,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    minHeight: 40,
+    color: theme.onSurface,
   },
   listContent: {
-    padding: spacing.marginMobile,
+    padding: 20,
     paddingBottom: 80,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.marginMobile,
+    paddingHorizontal: 20,
   },
   fab: {
     position: 'absolute',
@@ -191,7 +266,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: colors.primaryContainer,
+    backgroundColor: theme.primaryContainer,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 6,
@@ -202,8 +277,14 @@ const styles = StyleSheet.create({
   },
   fabText: {
     fontSize: 28,
-    color: colors.onPrimary,
+    color: theme.onPrimary,
     fontWeight: '600',
     lineHeight: 30,
   },
-});
+  placeholderColor: {
+    color: theme.onSurfaceVariant,
+  },
+  refreshColor: {
+    color: theme.primaryContainer,
+  },
+}));

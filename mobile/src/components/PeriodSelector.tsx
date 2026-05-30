@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors } from '../constants/colors';
-import { typography, spacing, borderRadius } from '../constants/typography';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 
 interface PeriodSelectorProps {
   selectedPeriod: 7 | 15 | 30;
@@ -46,35 +45,36 @@ export function PeriodSelector({ selectedPeriod, onPeriodChange }: PeriodSelecto
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(theme => ({
   container: {
     flexDirection: 'row',
-    paddingHorizontal: spacing.marginMobile,
-    paddingTop: spacing.marginMobile,
+    paddingHorizontal: 20,
+    paddingTop: 20,
     paddingBottom: 12,
     gap: 8,
   },
   button: {
     flex: 1,
-    borderRadius: borderRadius.default,
+    borderRadius: 8,
     paddingVertical: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: spacing.touchTargetMin,
+    minHeight: 48,
   },
   buttonActive: {
-    backgroundColor: colors.primaryContainer,
+    backgroundColor: theme.primaryContainer,
   },
   buttonInactive: {
-    backgroundColor: colors.surfaceContainerLow,
+    backgroundColor: theme.surfaceLow,
   },
   buttonText: {
-    ...typography.labelLg,
+    fontSize: 16,
+    fontWeight: '600',
   },
   buttonTextActive: {
-    color: colors.onPrimary,
+    color: theme.onPrimary,
   },
   buttonTextInactive: {
-    color: colors.onSurfaceVariant,
+    color: theme.onSurfaceVariant,
   },
-});
+}));

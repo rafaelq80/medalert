@@ -1,8 +1,7 @@
 import React from 'react';
-import { View, Text, TextInput, StyleSheet, KeyboardTypeOptions } from 'react-native';
+import { View, Text, TextInput, KeyboardTypeOptions } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 import { Controller, Control, FieldValues, Path } from 'react-hook-form';
-import { colors } from '../constants/colors';
-import { typography, spacing, borderRadius } from '../constants/typography';
 
 interface FormInputProps<T extends FieldValues> {
   control: Control<T>;
@@ -44,7 +43,7 @@ export function FormInput<T extends FieldValues>({
             onChangeText={onChange}
             onBlur={onBlur}
             placeholder={placeholder}
-            placeholderTextColor={colors.onSurfaceVariant}
+            placeholderTextColor={styles.placeholderColor.color}
             secureTextEntry={secureTextEntry}
             keyboardType={keyboardType}
             autoCapitalize={autoCapitalize}
@@ -62,33 +61,36 @@ export function FormInput<T extends FieldValues>({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(theme => ({
   container: {
     gap: 4,
   },
   label: {
-    ...typography.labelLg,
-    color: colors.onSurface,
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.onSurface,
   },
   input: {
-    ...typography.bodyMd,
-    backgroundColor: colors.surfaceContainerLow,
+    fontSize: 15,
+    backgroundColor: theme.inputBg,
     borderWidth: 1,
-    borderColor: colors.outline,
-    borderRadius: borderRadius.default,
-    paddingHorizontal: spacing.gutter,
-    minHeight: spacing.touchTargetMin,
-    color: colors.onSurface,
+    borderColor: theme.outline,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    minHeight: 48,
+    color: theme.inputText,
   },
   textArea: {
     minHeight: 96,
     paddingTop: 12,
   },
   inputError: {
-    borderColor: colors.error,
+    borderColor: theme.error,
   },
   errorText: {
-    ...typography.labelMd,
-    color: colors.error,
+    fontSize: 13,
+    fontWeight: '500',
+    color: theme.error,
   },
-});
+  placeholderColor: { color: theme.inputPlaceholder },
+}));

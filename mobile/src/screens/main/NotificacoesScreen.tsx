@@ -1,15 +1,17 @@
-import React, { useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, RefreshControl, Vibration } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, FlatList, RefreshControl, Vibration } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 import { useNotificacoes } from '../../hooks/useNotificacoes';
 import { NotificacaoItem } from '../../components/NotificacaoItem';
 import { EmptyState } from '../../components/EmptyState';
 import { ErrorState } from '../../components/ErrorState';
-import { LoadingState } from '../../components/LoadingState';
 import { SelectDropdown } from '../../components/SelectDropdown';
-import { colors } from '../../constants/colors';
-import { typography, spacing } from '../../constants/typography';
+import { ListSkeleton } from '../../components/SkeletonLoader';
+import { AnimatedCheck } from '../../components/AnimatedCheck';
+import { api } from '../../services/api';
 
 export function NotificacoesScreen() {
+  
   const {
     notificacoes,
     pacientes,
@@ -23,6 +25,9 @@ export function NotificacoesScreen() {
     retry,
   } = useNotificacoes();
 
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
+  const [showCheck, setShowCheck] = useState(false);
+
   const unreadCount = notificacoes.filter((n) => !n.lido_em).length;
   const hasUrgent = notificacoes.some(
     (n) => !n.lido_em && n.tipo === 'FALHA_TOMADA'
@@ -35,8 +40,22 @@ export function NotificacoesScreen() {
     }
   }, [hasUrgent]);
 
+  const handleQuickConfirm = useCallback(async (registroTomadaId: number) => {
+    setConfirmingId(registroTomadaId);
+    try {
+      await api.put(`/registros-tomada/${registroTomadaId}/confirmar`);
+      setShowCheck(true);
+      Vibration.vibrate(100);
+      handleRefresh();
+    } catch {
+      // Silently fail
+    } finally {
+      setConfirmingId(null);
+    }
+  }, [handleRefresh]);
+
   if (isLoading) {
-    return <LoadingState label="Carregando notificações" />;
+    return <ListSkeleton count={5} />;
   }
 
   if (error) {
@@ -45,18 +64,18 @@ export function NotificacoesScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Patient selector for cuidador/responsável with multiple vinculos */}
-      {pacientes.length > 1 && (
-        <View style={styles.selectorContainer}>
+      {/* Section title + patient selector */}
+      <View style={styles.selectorContainer}>
+        <Text style={styles.screenTitle}>Notificações</Text>
+        {pacientes.length > 1 && (
           <SelectDropdown
             options={pacientes}
             selectedId={selectedPacienteId}
             onSelect={handleSelectPaciente}
-            label="Paciente"
             placeholder="Selecione o paciente"
           />
-        </View>
-      )}
+        )}
+      </View>
 
       {/* Alert banner for unread notifications */}
       {unreadCount > 0 && (
@@ -75,6 +94,8 @@ export function NotificacoesScreen() {
           <NotificacaoItem
             notificacao={item}
             onPress={() => handleMarkAsRead(item)}
+            onQuickConfirm={handleQuickConfirm}
+            isConfirming={confirmingId === item.registro_tomada_id}
           />
         )}
         contentContainerStyle={
@@ -91,51 +112,66 @@ export function NotificacoesScreen() {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            colors={[colors.primaryContainer]}
-            tintColor={colors.primaryContainer}
+            colors={[styles.refreshColor.color]}
+            tintColor={styles.refreshColor.color}
           />
         }
         accessibilityLabel="Lista de notificações"
       />
+
+      <AnimatedCheck visible={showCheck} onComplete={() => setShowCheck(false)} />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(theme => ({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundApp,
+    backgroundColor: theme.backgroundApp,
   },
   selectorContainer: {
-    paddingHorizontal: spacing.marginMobile,
-    paddingTop: spacing.marginMobile,
-    paddingBottom: 8,
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 10,
+    backgroundColor: theme.surfaceCard,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.outlineVariant,
+    gap: 6,
+  },
+  screenTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.screenTitleColor,
   },
   alertBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primaryContainer,
+    backgroundColor: theme.primaryContainer,
     paddingVertical: 12,
-    paddingHorizontal: spacing.marginMobile,
+    paddingHorizontal: 20,
     gap: 8,
   },
   alertBannerUrgent: {
-    backgroundColor: colors.error,
+    backgroundColor: theme.error,
   },
   alertEmoji: {
     fontSize: 20,
   },
   alertText: {
-    ...typography.labelLg,
-    color: colors.onPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.onPrimary,
   },
   listContent: {
-    padding: spacing.marginMobile,
+    padding: 20,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.marginMobile,
+    paddingHorizontal: 20,
   },
-});
+  refreshColor: {
+    color: theme.primaryContainer,
+  },
+}));

@@ -1,15 +1,39 @@
-import React, { useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet, RefreshControl, Vibration } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, SectionList, RefreshControl, Vibration } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 import { useAgenda } from '../../hooks/useAgenda';
 import { RegistroTomadaCard } from '../../components/RegistroTomadaCard';
 import { EmptyState } from '../../components/EmptyState';
 import { ErrorState } from '../../components/ErrorState';
-import { LoadingState } from '../../components/LoadingState';
 import { SelectDropdown } from '../../components/SelectDropdown';
-import { colors } from '../../constants/colors';
-import { typography, spacing } from '../../constants/typography';
+import { ListSkeleton } from '../../components/SkeletonLoader';
+import { AnimatedCheck } from '../../components/AnimatedCheck';
+
+import { RegistroTomada } from '../../types';
+import { extractTime } from '../../utils/dateUtils';
+
+interface AgendaSection {
+  title: string;
+  icon: string;
+  data: RegistroTomada[];
+}
+
+function getTimePeriod(isoString: string): 'manha' | 'tarde' | 'noite' {
+  const time = extractTime(isoString);
+  const hour = parseInt(time.split(':')[0], 10);
+  if (hour < 12) return 'manha';
+  if (hour < 18) return 'tarde';
+  return 'noite';
+}
+
+const PERIOD_CONFIG = {
+  manha: { title: 'Manhã', icon: '☀️' },
+  tarde: { title: 'Tarde', icon: '🌤️' },
+  noite: { title: 'Noite', icon: '🌙' },
+};
 
 export function AgendaScreen() {
+  
   const {
     registros,
     pacienteNome,
@@ -25,6 +49,8 @@ export function AgendaScreen() {
     retry,
   } = useAgenda();
 
+  const [showCheck, setShowCheck] = useState(false);
+
   const pendingCount = registros.filter(
     (r) => r.status === 'PENDENTE' || r.status === 'ATRASADO'
   ).length;
@@ -37,8 +63,36 @@ export function AgendaScreen() {
     }
   }, [atrasadoCount]);
 
+  // Group registros by time period
+  const sections: AgendaSection[] = useMemo(() => {
+    const groups: Record<string, RegistroTomada[]> = {
+      manha: [],
+      tarde: [],
+      noite: [],
+    };
+
+    registros.forEach((r) => {
+      const period = getTimePeriod(r.data_hora_prevista);
+      groups[period].push(r);
+    });
+
+    return (['manha', 'tarde', 'noite'] as const)
+      .filter((key) => groups[key].length > 0)
+      .map((key) => ({
+        title: PERIOD_CONFIG[key].title,
+        icon: PERIOD_CONFIG[key].icon,
+        data: groups[key],
+      }));
+  }, [registros]);
+
+  const handleConfirmWithAnimation = (registroId: number) => {
+    handleConfirm(registroId);
+    setShowCheck(true);
+    Vibration.vibrate(100);
+  };
+
   if (isLoading && pacientes.length === 0) {
-    return <LoadingState label="Carregando agenda" />;
+    return <ListSkeleton count={4} />;
   }
 
   if (error && pacientes.length === 0) {
@@ -47,25 +101,20 @@ export function AgendaScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Patient selector for cuidador with multiple vinculos */}
-      {pacientes.length > 1 && (
-        <View style={styles.selectorContainer}>
+      {/* Section title + patient selector */}
+      <View style={styles.selectorContainer}>
+        <Text style={styles.screenTitle}>Agenda</Text>
+        {pacientes.length > 1 ? (
           <SelectDropdown
             options={pacientes}
             selectedId={selectedPacienteId}
             onSelect={handleSelectPaciente}
-            label="Paciente"
             placeholder="Selecione o paciente"
           />
-        </View>
-      )}
-
-      {/* Single patient banner */}
-      {pacientes.length === 1 && pacienteNome && (
-        <View style={styles.pacienteBanner}>
-          <Text style={styles.pacienteBannerText}>📋 Agenda de {pacienteNome}</Text>
-        </View>
-      )}
+        ) : pacienteNome ? (
+          <Text style={styles.pacienteSubtitle}>{pacienteNome}</Text>
+        ) : null}
+      </View>
 
       {/* Alert banner for pending/overdue items */}
       {pendingCount > 0 && (
@@ -80,94 +129,133 @@ export function AgendaScreen() {
       )}
 
       {isLoading ? (
-        <LoadingState label="Carregando agenda" />
+        <ListSkeleton count={3} />
       ) : error ? (
         <ErrorState message={error} onRetry={retry} />
+      ) : sections.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <EmptyState
+            emoji="📋"
+            title="Nenhuma tomada para hoje"
+            subtitle="Quando houver medicamentos agendados, eles aparecerão aqui."
+          />
+        </View>
       ) : (
-        <FlatList
-          data={registros}
+        <SectionList
+          sections={sections}
           keyExtractor={(item) => item.id.toString()}
+          renderSectionHeader={({ section }) => (
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionIcon}>{section.icon}</Text>
+              <Text style={styles.sectionTitle}>{section.title}</Text>
+              <Text style={styles.sectionCount}>{section.data.length}</Text>
+            </View>
+          )}
           renderItem={({ item }) => (
             <RegistroTomadaCard
               registro={item}
-              onConfirm={handleConfirm}
+              onConfirm={handleConfirmWithAnimation}
               isConfirming={confirmingId === item.id}
             />
           )}
-          contentContainerStyle={
-            registros.length === 0 ? styles.emptyContainer : styles.listContent
-          }
-          ListEmptyComponent={
-            <EmptyState
-              emoji="📋"
-              title="Nenhuma tomada para hoje"
-              subtitle="Quando houver medicamentos agendados, eles aparecerão aqui."
-            />
-          }
+          contentContainerStyle={styles.listContent}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={handleRefresh}
-              colors={[colors.primaryContainer]}
-              tintColor={colors.primaryContainer}
+              colors={[styles.refreshColor.color]}
+              tintColor={styles.refreshColor.color}
             />
           }
-          accessibilityLabel="Lista de medicamentos agendados para hoje"
+          stickySectionHeadersEnabled={false}
+          accessibilityLabel="Agenda do dia agrupada por período"
         />
       )}
+
+      {/* Animated check overlay */}
+      <AnimatedCheck visible={showCheck} onComplete={() => setShowCheck(false)} />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(theme => ({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundApp,
+    backgroundColor: theme.backgroundApp,
   },
   selectorContainer: {
-    paddingHorizontal: spacing.marginMobile,
-    paddingTop: 16,
+    paddingHorizontal: 20,
+    paddingTop: 14,
     paddingBottom: 12,
-    backgroundColor: colors.surfaceCard,
+    backgroundColor: theme.surfaceCard,
     borderBottomWidth: 1,
-    borderBottomColor: colors.outlineVariant,
+    borderBottomColor: theme.outlineVariant,
+    gap: 6,
   },
-  pacienteBanner: {
-    backgroundColor: colors.surfaceContainerLow,
-    paddingVertical: 10,
-    paddingHorizontal: spacing.marginMobile,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.outlineVariant,
+  screenTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.onSurface,
   },
-  pacienteBannerText: {
-    ...typography.labelLg,
-    color: colors.primary,
+  pacienteSubtitle: {
+    fontSize: 15,
+    color: theme.onSurfaceVariant,
   },
   alertBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primaryContainer,
+    backgroundColor: theme.primaryContainer,
     paddingVertical: 12,
-    paddingHorizontal: spacing.marginMobile,
+    paddingHorizontal: 20,
     gap: 8,
   },
   alertBannerUrgent: {
-    backgroundColor: colors.error,
+    backgroundColor: theme.error,
   },
   alertEmoji: {
     fontSize: 20,
   },
   alertText: {
-    ...typography.labelLg,
-    color: colors.onPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.onPrimary,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    gap: 8,
+  },
+  sectionIcon: {
+    fontSize: 20,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.onSurface,
+    flex: 1,
+  },
+  sectionCount: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: theme.onSurfaceVariant,
+    backgroundColor: theme.surfaceHigh,
+    borderRadius: 9999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    overflow: 'hidden',
   },
   listContent: {
-    padding: spacing.marginMobile,
+    padding: 20,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.marginMobile,
+    paddingHorizontal: 20,
   },
-});
+  refreshColor: {
+    color: theme.primaryContainer,
+  },
+}));

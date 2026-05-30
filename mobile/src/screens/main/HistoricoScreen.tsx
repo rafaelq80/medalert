@@ -1,23 +1,16 @@
 import React, { useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet, RefreshControl } from 'react-native';
+import { View, Text, FlatList, RefreshControl } from 'react-native';
+import { StyleSheet, useUnistyles } from 'react-native-unistyles';
 import { useHistorico } from '../../hooks/useHistorico';
 import { PeriodSelector } from '../../components/PeriodSelector';
 import { AdherenceCard } from '../../components/AdherenceCard';
 import { EmptyState } from '../../components/EmptyState';
 import { ErrorState } from '../../components/ErrorState';
-import { LoadingState } from '../../components/LoadingState';
+import { ListSkeleton } from '../../components/SkeletonLoader';
 import { SelectDropdown } from '../../components/SelectDropdown';
-import { colors } from '../../constants/colors';
-import { typography, spacing, borderRadius } from '../../constants/typography';
+
 import { RegistroTomada, StatusTomada } from '../../types';
 import { extractDateTime } from '../../utils/dateUtils';
-
-const STATUS_COLORS: Record<StatusTomada, string> = {
-  PENDENTE: colors.statusPending,
-  CONFIRMADO: colors.statusConfirmed,
-  ATRASADO: colors.statusDelayed,
-  IGNORADO: colors.statusIgnored,
-};
 
 const STATUS_LABELS: Record<StatusTomada, string> = {
   PENDENTE: 'Pendente',
@@ -27,6 +20,13 @@ const STATUS_LABELS: Record<StatusTomada, string> = {
 };
 
 export function HistoricoScreen() {
+  const { theme } = useUnistyles();
+  const STATUS_COLORS: Record<StatusTomada, string> = {
+    PENDENTE: theme.statusPending,
+    CONFIRMADO: theme.statusConfirmed,
+    ATRASADO: theme.statusDelayed,
+    IGNORADO: theme.statusIgnored,
+  };
   const {
     registros,
     selectedPeriod,
@@ -69,7 +69,7 @@ export function HistoricoScreen() {
   }, []);
 
   if (isLoading) {
-    return <LoadingState label="Carregando histórico" />;
+    return <ListSkeleton count={4} />;
   }
 
   if (error) {
@@ -78,25 +78,20 @@ export function HistoricoScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Patient selector for responsavel/cuidador with multiple vinculos */}
-      {pacientes.length > 1 && (
-        <View style={styles.pacienteSelectorContainer}>
+      {/* Section title + patient selector */}
+      <View style={styles.pacienteSelectorContainer}>
+        <Text style={styles.sectionTitle}>Histórico</Text>
+        {pacientes.length > 1 ? (
           <SelectDropdown
             options={pacientes}
             selectedId={selectedPacienteId}
             onSelect={handleSelectPaciente}
-            label="Paciente"
             placeholder="Selecione o paciente"
           />
-        </View>
-      )}
-
-      {/* Single patient banner */}
-      {pacientes.length === 1 && pacienteNome && (
-        <View style={styles.pacienteBanner}>
-          <Text style={styles.pacienteBannerText}>📋 Histórico de {pacienteNome}</Text>
-        </View>
-      )}
+        ) : pacienteNome ? (
+          <Text style={styles.pacienteSubtitle}>{pacienteNome}</Text>
+        ) : null}
+      </View>
 
       <PeriodSelector
         selectedPeriod={selectedPeriod}
@@ -128,8 +123,8 @@ export function HistoricoScreen() {
           <RefreshControl
             refreshing={isRefreshing}
             onRefresh={handleRefresh}
-            colors={[colors.primaryContainer]}
-            tintColor={colors.primaryContainer}
+            colors={[styles.refreshColor.color]}
+            tintColor={styles.refreshColor.color}
           />
         }
         accessibilityLabel="Lista de registros de tomada no período"
@@ -138,70 +133,76 @@ export function HistoricoScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(theme => ({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundApp,
-  },
-  pacienteBanner: {
-    backgroundColor: colors.surfaceContainerLow,
-    paddingVertical: 10,
-    paddingHorizontal: spacing.marginMobile,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.outlineVariant,
-  },
-  pacienteBannerText: {
-    ...typography.labelLg,
-    color: colors.primary,
+    backgroundColor: theme.backgroundApp,
   },
   pacienteSelectorContainer: {
-    paddingHorizontal: spacing.marginMobile,
+    paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: colors.surfaceCard,
+    backgroundColor: theme.surfaceCard,
     borderBottomWidth: 1,
-    borderBottomColor: colors.outlineVariant,
+    borderBottomColor: theme.outlineVariant,
+    gap: 6,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: theme.onSurface,
+  },
+  pacienteSubtitle: {
+    fontSize: 15,
+    color: theme.onSurfaceVariant,
   },
   listContent: {
-    padding: spacing.marginMobile,
+    padding: 20,
   },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.marginMobile,
+    paddingHorizontal: 20,
   },
   card: {
-    backgroundColor: colors.surfaceCard,
-    borderRadius: borderRadius.lg,
-    padding: spacing.cardPadding,
+    backgroundColor: theme.surfaceCard,
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    marginBottom: spacing.stackGap,
+    borderColor: theme.outlineVariant,
+    marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: spacing.touchTargetMin,
+    minHeight: 48,
   },
   cardContent: {
     flex: 1,
     marginRight: 12,
   },
   cardMedName: {
-    ...typography.labelLg,
-    color: colors.onSurface,
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.onSurface,
     marginBottom: 4,
   },
   cardDateTime: {
-    ...typography.bodyMd,
-    color: colors.onSurfaceVariant,
+    fontSize: 15,
+    color: theme.onSurfaceVariant,
   },
   statusBadge: {
-    borderRadius: borderRadius.full,
+    borderRadius: 9999,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   statusBadgeText: {
-    ...typography.statusTag,
-    color: colors.onPrimary,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: theme.onPrimary,
   },
-});
+  refreshColor: {
+    color: theme.primaryContainer,
+  },
+}));

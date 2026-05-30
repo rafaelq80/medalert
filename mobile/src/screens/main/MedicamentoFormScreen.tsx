@@ -3,8 +3,6 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  Alert,
   ActivityIndicator,
   ScrollView,
   Switch,
@@ -13,12 +11,12 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { Toast } from '../../components/Toast';
+import { StyleSheet } from 'react-native-unistyles';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { api } from '../../services/api';
-import { colors } from '../../constants/colors';
-import { typography, spacing, borderRadius } from '../../constants/typography';
 import { FormInput } from '../../components/FormInput';
 import { DatePickerInput } from '../../components/DatePickerInput';
 import { medicamentoSchema, MedicamentoFormData } from '../../schemas/medicamentoSchema';
@@ -30,6 +28,9 @@ type Props = NativeStackScreenProps<MedicamentosStackParamList, 'MedicamentoForm
 export function MedicamentoFormScreen({ route, navigation }: Props) {
   const { pacienteId, pacienteNome, medicamento } = route.params;
   const isEditing = !!medicamento;
+
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' as 'success' | 'error' | 'info' });
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => setToast({ visible: true, message, type });
 
   const [loading, setLoading] = useState(false);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -96,19 +97,17 @@ export function MedicamentoFormScreen({ route, navigation }: Props) {
 
       if (isEditing) {
         await api.put(`/medicamentos/${medicamento!.id}`, payload);
-        Alert.alert('Sucesso', 'Medicamento atualizado com sucesso.', [
-          { text: 'OK', onPress: () => navigation.goBack() },
-        ]);
+        showToast('Medicamento atualizado com sucesso.', 'success');
+        setTimeout(() => navigation.goBack(), 1500);
       } else {
         await api.post(`/pacientes/${pacienteId}/medicamentos`, payload);
-        Alert.alert('Sucesso', 'Medicamento cadastrado com sucesso.', [
-          { text: 'OK', onPress: () => navigation.goBack() },
-        ]);
+        showToast('Medicamento cadastrado com sucesso.', 'success');
+        setTimeout(() => navigation.goBack(), 1500);
       }
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { detail?: string } } };
       const message = axiosErr.response?.data?.detail || 'Não foi possível salvar o medicamento.';
-      Alert.alert('Erro', message);
+      showToast(message, 'error');
     } finally {
       setLoading(false);
     }
@@ -124,6 +123,7 @@ export function MedicamentoFormScreen({ route, navigation }: Props) {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
+        <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={() => setToast(t => ({ ...t, visible: false }))} />
         <Text style={styles.title}>
           {isEditing ? 'Editar Medicamento' : 'Novo Medicamento'}
         </Text>
@@ -173,7 +173,7 @@ export function MedicamentoFormScreen({ route, navigation }: Props) {
           accessibilityRole="button"
         >
           {loadingCategorias ? (
-            <ActivityIndicator size="small" color={colors.primaryContainer} />
+            <ActivityIndicator size="small" color={styles.primaryContainerColor.color} />
           ) : (
             <Text
               style={[
@@ -196,8 +196,8 @@ export function MedicamentoFormScreen({ route, navigation }: Props) {
               <Switch
                 value={value}
                 onValueChange={onChange}
-                trackColor={{ false: colors.outlineVariant, true: colors.primaryContainer }}
-                thumbColor={value ? colors.onPrimary : colors.surfaceContainerHigh}
+                trackColor={{ false: styles.outlineVariantColor.color, true: styles.primaryContainerColor.color }}
+                thumbColor={value ? styles.onPrimaryColor.color : styles.surfaceHighColor.color}
                 accessibilityLabel="Uso contínuo"
                 accessibilityRole="switch"
               />
@@ -214,8 +214,8 @@ export function MedicamentoFormScreen({ route, navigation }: Props) {
               <Switch
                 value={value}
                 onValueChange={onChange}
-                trackColor={{ false: colors.outlineVariant, true: colors.primaryContainer }}
-                thumbColor={value ? colors.onPrimary : colors.surfaceContainerHigh}
+                trackColor={{ false: styles.outlineVariantColor.color, true: styles.primaryContainerColor.color }}
+                thumbColor={value ? styles.onPrimaryColor.color : styles.surfaceHighColor.color}
                 accessibilityLabel="Necessita retorno médico"
                 accessibilityRole="switch"
               />
@@ -242,7 +242,7 @@ export function MedicamentoFormScreen({ route, navigation }: Props) {
           accessibilityRole="button"
         >
           {loading ? (
-            <ActivityIndicator color={colors.onPrimary} />
+            <ActivityIndicator color={styles.onPrimaryColor.color} />
           ) : (
             <Text style={styles.buttonText}>
               {isEditing ? 'Salvar Alterações' : 'Cadastrar'}
@@ -310,77 +310,89 @@ export function MedicamentoFormScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(theme => ({
   flex: {
     flex: 1,
   },
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundApp,
+    backgroundColor: theme.backgroundApp,
   },
   content: {
-    paddingHorizontal: spacing.marginMobile,
+    paddingHorizontal: 20,
     paddingTop: 24,
     paddingBottom: 40,
-    gap: spacing.stackGap,
+    gap: 16,
   },
   title: {
-    ...typography.headlineMd,
-    color: colors.primary,
+    fontSize: 22,
+    fontWeight: '700',
+    lineHeight: 28,
+    color: theme.primary,
     marginBottom: 4,
   },
   pacienteInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceContainerLow,
-    borderRadius: borderRadius.default,
+    backgroundColor: theme.surfaceLow,
+    borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 8,
     gap: 6,
   },
   pacienteLabel: {
-    ...typography.labelMd,
-    color: colors.onSurfaceVariant,
+    fontSize: 12,
+    fontWeight: '500',
+    lineHeight: 16,
+    color: theme.onSurfaceVariant,
   },
   pacienteValue: {
-    ...typography.labelLg,
-    color: colors.primary,
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 20,
+    color: theme.primary,
   },
   label: {
-    ...typography.labelLg,
-    color: colors.onSurface,
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 20,
+    color: theme.onSurface,
   },
   categoriaButton: {
-    backgroundColor: colors.surfaceContainerLow,
+    backgroundColor: theme.inputBg,
     borderWidth: 1,
-    borderColor: colors.outline,
-    borderRadius: borderRadius.default,
-    paddingHorizontal: spacing.gutter,
-    minHeight: spacing.touchTargetMin,
+    borderColor: theme.outline,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    minHeight: 48,
     justifyContent: 'center',
   },
   categoriaButtonText: {
-    ...typography.bodyMd,
-    color: colors.onSurface,
+    fontSize: 14,
+    fontWeight: '400',
+    lineHeight: 20,
+    color: theme.inputText,
   },
   categoriaButtonPlaceholder: {
-    color: colors.onSurfaceVariant,
+    color: theme.inputPlaceholder,
   },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: spacing.touchTargetMin,
+    minHeight: 48,
     paddingHorizontal: 4,
   },
   switchLabel: {
-    ...typography.bodyMd,
-    color: colors.onSurface,
+    fontSize: 14,
+    fontWeight: '400',
+    lineHeight: 20,
+    color: theme.onSurface,
   },
   button: {
-    backgroundColor: colors.primaryContainer,
-    borderRadius: borderRadius.default,
-    minHeight: spacing.touchTargetMin,
+    backgroundColor: theme.primaryContainer,
+    borderRadius: 8,
+    minHeight: 48,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
@@ -389,8 +401,10 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   buttonText: {
-    ...typography.labelLg,
-    color: colors.onPrimary,
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 20,
+    color: theme.onPrimary,
   },
   // Modal styles
   modalOverlay: {
@@ -399,15 +413,17 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: colors.surfaceCard,
-    borderTopLeftRadius: borderRadius.lg,
-    borderTopRightRadius: borderRadius.lg,
-    padding: spacing.cardPadding,
+    backgroundColor: theme.surfaceCard,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 16,
     maxHeight: '60%',
   },
   modalTitle: {
-    ...typography.headlineMd,
-    color: colors.onSurface,
+    fontSize: 22,
+    fontWeight: '700',
+    lineHeight: 28,
+    color: theme.onSurface,
     marginBottom: 16,
   },
   modalList: {
@@ -416,35 +432,46 @@ const styles = StyleSheet.create({
   modalItem: {
     paddingVertical: 14,
     paddingHorizontal: 12,
-    borderRadius: borderRadius.default,
+    borderRadius: 8,
     marginBottom: 4,
   },
   modalItemActive: {
-    backgroundColor: colors.primaryContainer,
+    backgroundColor: theme.primaryContainer,
   },
   modalItemText: {
-    ...typography.labelLg,
-    color: colors.onSurface,
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 20,
+    color: theme.onSurface,
   },
   modalItemTextActive: {
-    color: colors.onPrimary,
+    color: theme.onPrimary,
   },
   modalItemDesc: {
-    ...typography.bodyMd,
-    color: colors.onSurfaceVariant,
+    fontSize: 14,
+    fontWeight: '400',
+    lineHeight: 20,
+    color: theme.onSurfaceVariant,
     marginTop: 2,
   },
   modalCloseButton: {
-    minHeight: spacing.touchTargetMin,
+    minHeight: 48,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: borderRadius.default,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: colors.outline,
+    borderColor: theme.outline,
     marginTop: 12,
   },
   modalCloseText: {
-    ...typography.labelLg,
-    color: colors.onSurfaceVariant,
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 20,
+    color: theme.onSurfaceVariant,
   },
-});
+  // Color tokens for dynamic usage
+  onPrimaryColor: { color: theme.onPrimary },
+  outlineVariantColor: { color: theme.outlineVariant },
+  primaryContainerColor: { color: theme.primaryContainer },
+  surfaceHighColor: { color: theme.surfaceHigh },
+}));

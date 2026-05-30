@@ -5,10 +5,8 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
-  StyleSheet,
 } from 'react-native';
-import { colors } from '../constants/colors';
-import { typography, spacing, borderRadius } from '../constants/typography';
+import { StyleSheet } from 'react-native-unistyles';
 
 export interface SelectOption {
   id: number;
@@ -95,36 +93,37 @@ export function SelectDropdown({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(theme => ({
   container: {
     gap: 4,
   },
   label: {
-    ...typography.labelMd,
-    color: colors.onSurfaceVariant,
+    fontSize: 13,
+    fontWeight: '500',
+    color: theme.onSurfaceVariant,
   },
   trigger: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.surfaceContainerLow,
+    backgroundColor: theme.inputBg,
     borderWidth: 1,
-    borderColor: colors.outline,
-    borderRadius: borderRadius.default,
+    borderColor: theme.outline,
+    borderRadius: 8,
     paddingHorizontal: 12,
     minHeight: 40,
   },
   triggerText: {
-    ...typography.bodyMd,
-    color: colors.onSurface,
+    fontSize: 15,
+    color: theme.inputText,
     flex: 1,
   },
   placeholder: {
-    color: colors.onSurfaceVariant,
+    color: theme.inputPlaceholder,
   },
   arrow: {
     fontSize: 10,
-    color: colors.onSurfaceVariant,
+    color: theme.onSurfaceVariant,
     marginLeft: 8,
   },
   overlay: {
@@ -134,8 +133,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
   },
   dropdown: {
-    backgroundColor: colors.surfaceCard,
-    borderRadius: borderRadius.md,
+    backgroundColor: theme.surfaceCard,
+    borderRadius: 12,
     maxHeight: 300,
     elevation: 8,
     shadowColor: '#000',
@@ -147,17 +146,17 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.outlineVariant,
+    borderBottomColor: theme.outlineVariant,
   },
   optionActive: {
-    backgroundColor: colors.primaryContainer,
+    backgroundColor: theme.primaryContainer,
   },
   optionText: {
-    ...typography.bodyMd,
-    color: colors.onSurface,
+    fontSize: 15,
+    color: theme.onSurface,
   },
   optionTextActive: {
-    color: colors.onPrimary,
+    color: theme.onPrimary,
     fontWeight: '600',
   },
-});
+}));

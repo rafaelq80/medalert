@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors } from '../constants/colors';
-import { typography, spacing, borderRadius } from '../constants/typography';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 
 interface ErrorStateProps {
   message: string;
@@ -24,30 +23,31 @@ export function ErrorState({ message, onRetry }: ErrorStateProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(theme => ({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundApp,
+    backgroundColor: theme.backgroundApp,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.marginMobile,
+    paddingHorizontal: 20,
   },
   errorText: {
-    ...typography.bodyLg,
-    color: colors.error,
+    fontSize: 16,
+    color: theme.error,
     textAlign: 'center',
     marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: colors.primaryContainer,
-    borderRadius: borderRadius.default,
+    backgroundColor: theme.primaryContainer,
+    borderRadius: 8,
     paddingVertical: 12,
     paddingHorizontal: 24,
-    minHeight: spacing.touchTargetMin,
+    minHeight: 48,
     justifyContent: 'center',
   },
   retryButtonText: {
-    ...typography.labelLg,
-    color: colors.onPrimary,
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.onPrimary,
   },
-});
+}));

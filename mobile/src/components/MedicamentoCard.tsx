@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { colors } from '../constants/colors';
-import { typography, spacing, borderRadius } from '../constants/typography';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 import { Medicamento } from '../types';
 import { extractDate } from '../utils/dateUtils';
 
@@ -69,15 +68,15 @@ export function MedicamentoCard({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(theme => ({
   card: {
-    backgroundColor: colors.surfaceCard,
-    borderRadius: borderRadius.lg,
-    padding: spacing.cardPadding,
+    backgroundColor: theme.surfaceCard,
+    borderRadius: 16,
+    padding: 16,
     borderWidth: 1,
-    borderColor: colors.outlineVariant,
-    marginBottom: spacing.stackGap,
-    minHeight: spacing.touchTargetMin,
+    borderColor: theme.outlineVariant,
+    marginBottom: 12,
+    minHeight: 48,
   },
   header: {
     flexDirection: 'row',
@@ -86,48 +85,53 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   name: {
-    ...typography.labelLg,
-    color: colors.onSurface,
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.onSurface,
     flex: 1,
     marginRight: 8,
   },
   continuoBadge: {
-    backgroundColor: colors.secondary,
-    borderRadius: borderRadius.full,
+    backgroundColor: theme.secondary,
+    borderRadius: 9999,
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
   continuoBadgeText: {
-    ...typography.statusTag,
-    color: colors.onSecondary,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    color: theme.onSecondary,
   },
   dosage: {
-    ...typography.bodyMd,
-    color: colors.onSurfaceVariant,
+    fontSize: 15,
+    color: theme.onSurfaceVariant,
     marginBottom: 4,
   },
   category: {
-    ...typography.labelMd,
-    color: colors.onSurfaceVariant,
+    fontSize: 13,
+    fontWeight: '500',
+    color: theme.onSurfaceVariant,
     marginBottom: 4,
   },
   retorno: {
-    ...typography.labelMd,
-    color: colors.primaryContainer,
+    fontSize: 13,
+    fontWeight: '500',
+    color: theme.primaryContainer,
     marginTop: 8,
   },
   agendasButton: {
     marginTop: 12,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderRadius: borderRadius.default,
-    backgroundColor: colors.surfaceContainerLow,
-    borderWidth: 1,
-    borderColor: colors.outlineVariant,
+    borderRadius: 8,
+    backgroundColor: theme.primaryContainer,
     alignSelf: 'flex-start',
   },
   agendasButtonText: {
-    ...typography.labelMd,
-    color: colors.primaryContainer,
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.onPrimary,
   },
-});
+}));

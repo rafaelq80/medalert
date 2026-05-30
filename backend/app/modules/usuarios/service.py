@@ -1,11 +1,12 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import hash_password
+from app.core.security import hash_password, verify_password
 from app.modules.usuarios.models import TipoUsuario, Usuario
 from app.modules.usuarios.repository import create, get_by_email, update
 from app.modules.usuarios.schemas import (
     PushTokenUpdate,
+    SenhaUpdate,
     UsuarioBuscaResponse,
     UsuarioCreate,
     UsuarioResponse,
@@ -89,3 +90,23 @@ async def buscar_paciente_por_email(
         )
 
     return UsuarioBuscaResponse.model_validate(paciente)
+
+
+async def change_password(
+    user: Usuario, senha_data: SenhaUpdate, db: AsyncSession
+) -> None:
+    """Change user password after verifying current password."""
+    if not verify_password(senha_data.senha_atual, user.senha):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Senha atual incorreta",
+        )
+
+    if len(senha_data.nova_senha) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="A nova senha deve ter pelo menos 6 caracteres",
+        )
+
+    user.senha = hash_password(senha_data.nova_senha)
+    await db.commit()

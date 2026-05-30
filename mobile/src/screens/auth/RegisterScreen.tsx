@@ -1,26 +1,25 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  Alert,
   ActivityIndicator,
   ScrollView,
   Switch,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { Controller } from 'react-hook-form';
-import { colors } from '../../constants/colors';
-import { typography, spacing, borderRadius } from '../../constants/typography';
 import { AuthStackParamList } from '../../navigation/AppNavigator';
 import { TipoUsuario, NivelAutonomia } from '../../types';
 import { RegisterFormData } from '../../schemas/registerSchema';
 import { FormInput } from '../../components/FormInput';
 import { DatePickerInput } from '../../components/DatePickerInput';
+import { Toast } from '../../components/Toast';
+import { BottomSheet } from '../../components/BottomSheet';
 import { useRegister } from '../../hooks/useRegister';
 
 type RegisterNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Register'>;
@@ -43,17 +42,19 @@ export function RegisterScreen() {
     control,
     handleSubmit,
     loading,
+    error,
+    clearError,
     tipo,
     handleTipoChange,
     onSubmit,
   } = useRegister();
 
+  const [showSuccess, setShowSuccess] = useState(false);
+
   const handleFormSubmit = async (data: RegisterFormData) => {
     const success = await onSubmit(data);
     if (success) {
-      Alert.alert('Sucesso', 'Conta criada com sucesso! Faça login para continuar.', [
-        { text: 'OK', onPress: () => navigation.navigate('Login') },
-      ]);
+      setShowSuccess(true);
     }
   };
 
@@ -62,6 +63,7 @@ export function RegisterScreen() {
       style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <Toast visible={!!error} message={error ?? ''} type="error" onDismiss={clearError} />
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.content}
@@ -204,8 +206,8 @@ export function RegisterScreen() {
                   <Switch
                     value={!!value}
                     onValueChange={onChange}
-                    trackColor={{ false: colors.outlineVariant, true: colors.primaryContainer }}
-                    thumbColor={value ? colors.onPrimary : colors.surfaceContainerHigh}
+                    trackColor={{ false: styles.outlineVariantColor.color, true: styles.primaryContainerColor.color }}
+                    thumbColor={value ? styles.onPrimaryColor.color : styles.surfaceHighColor.color}
                     accessibilityLabel="Ativar recebimento de notificações"
                     accessibilityRole="switch"
                   />
@@ -224,7 +226,7 @@ export function RegisterScreen() {
           accessibilityRole="button"
         >
           {loading ? (
-            <ActivityIndicator color={colors.onPrimary} />
+            <ActivityIndicator color={styles.onPrimaryColor.color} />
           ) : (
             <Text style={styles.buttonText}>Cadastrar</Text>
           )}
@@ -240,38 +242,55 @@ export function RegisterScreen() {
           <Text style={styles.loginText}>Já tem conta? Faça login</Text>
         </TouchableOpacity>
       </ScrollView>
+
+      <BottomSheet
+        visible={showSuccess}
+        onClose={() => { setShowSuccess(false); navigation.navigate('Login'); }}
+        title="Conta criada!"
+        description="Sua conta foi criada com sucesso. Faça login para continuar."
+        icon="🎉"
+        actions={[
+          { label: 'Fazer Login', onPress: () => { setShowSuccess(false); navigation.navigate('Login'); } },
+        ]}
+      />
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(theme => ({
   flex: {
     flex: 1,
   },
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundApp,
+    backgroundColor: theme.backgroundApp,
   },
   content: {
-    paddingHorizontal: spacing.marginMobile,
+    paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 40,
-    gap: spacing.stackGap,
+    gap: 16,
   },
   title: {
-    ...typography.headlineMd,
-    color: colors.primary,
+    fontSize: 22,
+    fontWeight: '700',
+    lineHeight: 28,
+    color: theme.primary,
     textAlign: 'center',
   },
   subtitle: {
-    ...typography.bodyMd,
-    color: colors.onSurfaceVariant,
+    fontSize: 14,
+    fontWeight: '400',
+    lineHeight: 20,
+    color: theme.onSurfaceVariant,
     textAlign: 'center',
     marginBottom: 12,
   },
   label: {
-    ...typography.labelLg,
-    color: colors.onSurface,
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 20,
+    color: theme.onSurface,
   },
   typeSelector: {
     flexDirection: 'row',
@@ -279,41 +298,45 @@ const styles = StyleSheet.create({
   },
   typeButton: {
     flex: 1,
-    minHeight: spacing.touchTargetMin,
+    minHeight: 48,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: colors.outline,
-    borderRadius: borderRadius.default,
-    backgroundColor: colors.surfaceContainerLow,
+    borderColor: theme.outline,
+    borderRadius: 8,
+    backgroundColor: theme.surfaceLow,
   },
   typeButtonActive: {
-    backgroundColor: colors.primaryContainer,
-    borderColor: colors.primaryContainer,
+    backgroundColor: theme.primaryContainer,
+    borderColor: theme.primaryContainer,
   },
   typeButtonText: {
-    ...typography.labelMd,
-    color: colors.onSurfaceVariant,
+    fontSize: 12,
+    fontWeight: '500',
+    lineHeight: 16,
+    color: theme.onSurfaceVariant,
   },
   typeButtonTextActive: {
-    color: colors.onPrimary,
+    color: theme.onPrimary,
     fontWeight: '600',
   },
   switchRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    minHeight: spacing.touchTargetMin,
+    minHeight: 48,
     paddingHorizontal: 4,
   },
   switchLabel: {
-    ...typography.bodyMd,
-    color: colors.onSurface,
+    fontSize: 14,
+    fontWeight: '400',
+    lineHeight: 20,
+    color: theme.onSurface,
   },
   button: {
-    backgroundColor: colors.primaryContainer,
-    borderRadius: borderRadius.default,
-    minHeight: spacing.touchTargetMin,
+    backgroundColor: theme.primaryContainer,
+    borderRadius: 8,
+    minHeight: 48,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
@@ -322,16 +345,25 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   buttonText: {
-    ...typography.labelLg,
-    color: colors.onPrimary,
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 20,
+    color: theme.onPrimary,
   },
   loginLink: {
     alignItems: 'center',
-    minHeight: spacing.touchTargetMin,
+    minHeight: 48,
     justifyContent: 'center',
   },
   loginText: {
-    ...typography.bodyMd,
-    color: colors.primaryContainer,
+    fontSize: 14,
+    fontWeight: '400',
+    lineHeight: 20,
+    color: theme.primaryContainer,
   },
-});
+  // Color tokens for dynamic usage
+  onPrimaryColor: { color: theme.onPrimary },
+  outlineVariantColor: { color: theme.outlineVariant },
+  primaryContainerColor: { color: theme.primaryContainer },
+  surfaceHighColor: { color: theme.surfaceHigh },
+}));

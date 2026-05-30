@@ -1,7 +1,6 @@
 import React from 'react';
-import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
-import { colors } from '../constants/colors';
-import { typography, spacing } from '../constants/typography';
+import { View, ActivityIndicator, Text } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 
 interface LoadingStateProps {
   label?: string;
@@ -12,7 +11,7 @@ export function LoadingState({ label }: LoadingStateProps) {
     <View style={styles.container}>
       <ActivityIndicator
         size="large"
-        color={colors.primaryContainer}
+        color={styles.indicatorColor.color}
         accessibilityLabel={label ?? 'Carregando'}
       />
       {label ? <Text style={styles.label}>{label}</Text> : null}
@@ -20,17 +19,18 @@ export function LoadingState({ label }: LoadingStateProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(theme => ({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundApp,
+    backgroundColor: theme.backgroundApp,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.marginMobile,
+    paddingHorizontal: 20,
   },
   label: {
-    ...typography.bodyMd,
-    color: colors.onSurfaceVariant,
+    fontSize: 15,
+    color: theme.onSurfaceVariant,
     marginTop: 12,
   },
-});
+  indicatorColor: { color: theme.primaryContainer },
+}));

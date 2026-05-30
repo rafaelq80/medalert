@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { Alert } from 'react-native';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { api } from '../services/api';
@@ -12,6 +11,8 @@ export interface UseRegisterReturn {
   watch: ReturnType<typeof useForm<RegisterFormData>>['watch'];
   setValue: ReturnType<typeof useForm<RegisterFormData>>['setValue'];
   loading: boolean;
+  error: string | null;
+  clearError: () => void;
   tipo: TipoUsuario;
   handleTipoChange: (newTipo: TipoUsuario) => void;
   onSubmit: (data: RegisterFormData) => Promise<boolean>;
@@ -19,6 +20,7 @@ export interface UseRegisterReturn {
 
 export function useRegister(): UseRegisterReturn {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const { control, handleSubmit, watch, setValue } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -56,6 +58,7 @@ export function useRegister(): UseRegisterReturn {
 
   const onSubmit = async (data: RegisterFormData): Promise<boolean> => {
     setLoading(true);
+    setError(null);
     try {
       const payload: Record<string, unknown> = {
         nome: data.nome.trim(),
@@ -84,16 +87,15 @@ export function useRegister(): UseRegisterReturn {
     } catch (err: unknown) {
       if (isAxiosError(err)) {
         if (err.response?.status === 409) {
-          Alert.alert('Erro', 'E-mail já cadastrado');
+          setError('E-mail já cadastrado.');
         } else if (err.response?.status === 422) {
           const detail = err.response?.data?.detail;
-          const message = typeof detail === 'string' ? detail : 'Dados inválidos. Verifique os campos.';
-          Alert.alert('Erro de validação', message);
+          setError(typeof detail === 'string' ? detail : 'Dados inválidos. Verifique os campos.');
         } else {
-          Alert.alert('Erro', 'Não foi possível criar a conta. Tente novamente.');
+          setError('Não foi possível criar a conta. Tente novamente.');
         }
       } else {
-        Alert.alert('Erro', 'Não foi possível criar a conta. Tente novamente.');
+        setError('Não foi possível criar a conta. Tente novamente.');
       }
       return false;
     } finally {
@@ -101,12 +103,16 @@ export function useRegister(): UseRegisterReturn {
     }
   };
 
+  const clearError = () => setError(null);
+
   return {
     control,
     handleSubmit,
     watch,
     setValue,
     loading,
+    error,
+    clearError,
     tipo: tipo as TipoUsuario,
     handleTipoChange,
     onSubmit,

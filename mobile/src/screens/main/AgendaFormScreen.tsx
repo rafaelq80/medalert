@@ -3,18 +3,16 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  Alert,
   ActivityIndicator,
   ScrollView,
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
+import { Toast } from '../../components/Toast';
+import { StyleSheet } from 'react-native-unistyles';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { useForm, Controller } from 'react-hook-form';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { colors } from '../../constants/colors';
-import { typography, spacing, borderRadius } from '../../constants/typography';
 import { FormInput } from '../../components/FormInput';
 import { DatePickerInput } from '../../components/DatePickerInput';
 import { useAgendasCrud } from '../../hooks/useAgendasCrud';
@@ -55,6 +53,8 @@ export function AgendaFormScreen({ route, navigation }: Props) {
 
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' as 'success' | 'error' | 'info' });
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => setToast({ visible: true, message, type });
 
   const { control, handleSubmit, watch, setValue, reset } = useForm<AgendaFormValues>({
     mode: 'onBlur',
@@ -76,14 +76,14 @@ export function AgendaFormScreen({ route, navigation }: Props) {
 
   const onSubmit = async (data: AgendaFormValues) => {
     if (!data.horario) {
-      Alert.alert('Erro', 'Selecione um horário.');
+      showToast('Selecione um horário.', 'error');
       return;
     }
     if (
       (data.frequencia === 'SEMANAL' || data.frequencia === 'PERSONALIZADA') &&
       !data.dias_semana
     ) {
-      Alert.alert('Erro', 'Selecione os dias da semana.');
+      showToast('Selecione os dias da semana.', 'error');
       return;
     }
 
@@ -164,12 +164,13 @@ export function AgendaFormScreen({ route, navigation }: Props) {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
       >
+        <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={() => setToast(t => ({ ...t, visible: false }))} />
         <Text style={styles.title}>Horários de Tomada</Text>
         <Text style={styles.subtitle}>{medicamentoNome}</Text>
 
         {/* Existing agendas */}
         {isLoading ? (
-          <ActivityIndicator size="small" color={colors.primaryContainer} />
+          <ActivityIndicator size="small" color={styles.primaryContainerColor.color} />
         ) : error ? (
           <Text style={styles.errorText}>{error}</Text>
         ) : agendas.length > 0 ? (
@@ -240,25 +241,17 @@ export function AgendaFormScreen({ route, navigation }: Props) {
             control={control}
             name="frequencia"
             render={({ field: { value, onChange } }) => (
-              <View style={styles.freqSelector}>
+              <View style={styles.freqOptions}>
                 {FREQUENCIAS.map((item) => (
                   <TouchableOpacity
                     key={item.value}
-                    style={[
-                      styles.freqButton,
-                      value === item.value && styles.freqButtonActive,
-                    ]}
+                    style={[styles.freqOption, value === item.value && styles.freqOptionActive]}
                     onPress={() => onChange(item.value)}
                     accessibilityLabel={`Frequência ${item.label}`}
                     accessibilityRole="button"
                     accessibilityState={{ selected: value === item.value }}
                   >
-                    <Text
-                      style={[
-                        styles.freqButtonText,
-                        value === item.value && styles.freqButtonTextActive,
-                      ]}
-                    >
+                    <Text style={[styles.freqOptionText, value === item.value && styles.freqOptionTextActive]}>
                       {item.label}
                     </Text>
                   </TouchableOpacity>
@@ -348,7 +341,7 @@ export function AgendaFormScreen({ route, navigation }: Props) {
             accessibilityRole="button"
           >
             {submitting ? (
-              <ActivityIndicator color={colors.onPrimary} />
+              <ActivityIndicator color={styles.onPrimaryColor.color} />
             ) : (
               <Text style={styles.buttonText}>Adicionar Horário</Text>
             )}
@@ -359,23 +352,23 @@ export function AgendaFormScreen({ route, navigation }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(theme => ({
   flex: { flex: 1 },
-  container: { flex: 1, backgroundColor: colors.backgroundApp },
+  container: { flex: 1, backgroundColor: theme.backgroundApp },
   content: {
-    paddingHorizontal: spacing.marginMobile,
+    paddingHorizontal: 20,
     paddingTop: 24,
     paddingBottom: 40,
-    gap: spacing.stackGap,
+    gap: 16,
   },
-  title: { ...typography.headlineMd, color: colors.primary },
-  subtitle: { ...typography.bodyMd, color: colors.onSurfaceVariant, marginBottom: 8 },
-  sectionTitle: { ...typography.labelLg, color: colors.onSurface, marginBottom: 8 },
-  label: { ...typography.labelLg, color: colors.onSurface },
+  title: { fontSize: 22, fontWeight: '700', lineHeight: 28, color: theme.primary },
+  subtitle: { fontSize: 14, fontWeight: '400', lineHeight: 20, color: theme.onSurfaceVariant, marginBottom: 8 },
+  sectionTitle: { fontSize: 14, fontWeight: '600', lineHeight: 20, color: theme.onSurface, marginBottom: 8 },
+  label: { fontSize: 14, fontWeight: '600', lineHeight: 20, color: theme.onSurface },
   agendasList: { marginBottom: 16 },
   agendaCard: {
-    backgroundColor: colors.surfaceCard,
-    borderRadius: borderRadius.default,
+    backgroundColor: theme.surfaceCard,
+    borderRadius: 8,
     padding: 12,
     marginBottom: 8,
     flexDirection: 'row',
@@ -383,68 +376,69 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   agendaContent: { flex: 1 },
-  agendaTime: { ...typography.labelLg, color: colors.primary },
-  agendaFreq: { ...typography.bodyMd, color: colors.onSurfaceVariant },
+  agendaTime: { fontSize: 14, fontWeight: '600', lineHeight: 20, color: theme.primary },
+  agendaFreq: { fontSize: 14, fontWeight: '400', lineHeight: 20, color: theme.onSurfaceVariant },
   deleteBtn: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.errorContainer,
+    backgroundColor: theme.errorContainer,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  deleteBtnText: { color: colors.error, fontSize: 14, fontWeight: '700' },
-  formSection: { gap: spacing.stackGap },
+  deleteBtnText: { color: theme.error, fontSize: 14, fontWeight: '700' },
+  formSection: { gap: 16 },
   timeInput: {
-    backgroundColor: colors.surfaceContainerLow,
+    backgroundColor: theme.inputBg,
     borderWidth: 1,
-    borderColor: colors.outline,
-    borderRadius: borderRadius.default,
-    paddingHorizontal: spacing.gutter,
-    minHeight: spacing.touchTargetMin,
+    borderColor: theme.outline,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    minHeight: 48,
     justifyContent: 'center',
   },
-  inputError: { borderColor: colors.error },
-  timeText: { ...typography.bodyMd, color: colors.onSurface },
-  placeholder: { color: colors.onSurfaceVariant },
-  fieldError: { ...typography.labelMd, color: colors.error, marginTop: 4 },
+  inputError: { borderColor: theme.error },
+  timeText: { fontSize: 14, fontWeight: '400', lineHeight: 20, color: theme.inputText },
+  placeholder: { color: theme.inputPlaceholder },
+  fieldError: { fontSize: 12, fontWeight: '500', lineHeight: 16, color: theme.error, marginTop: 4 },
   doneButton: { alignSelf: 'flex-end', paddingVertical: 8, paddingHorizontal: 16 },
-  doneButtonText: { ...typography.labelLg, color: colors.primaryContainer },
-  freqSelector: { flexDirection: 'row', gap: 8 },
-  freqButton: {
-    flex: 1,
-    minHeight: spacing.touchTargetMin,
-    justifyContent: 'center',
-    alignItems: 'center',
+  doneButtonText: { fontSize: 14, fontWeight: '600', lineHeight: 20, color: theme.primaryContainer },
+  freqOptions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  freqOption: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 9999,
     borderWidth: 1,
-    borderColor: colors.outline,
-    borderRadius: borderRadius.default,
-    backgroundColor: colors.surfaceContainerLow,
+    borderColor: theme.outline,
+    backgroundColor: theme.inputBg,
   },
-  freqButtonActive: { backgroundColor: colors.primaryContainer, borderColor: colors.primaryContainer },
-  freqButtonText: { ...typography.labelMd, color: colors.onSurfaceVariant },
-  freqButtonTextActive: { color: colors.onPrimary, fontWeight: '600' },
+  freqOptionActive: { backgroundColor: theme.primaryContainer, borderColor: theme.primaryContainer },
+  freqOptionText: { fontSize: 13, fontWeight: '500', color: theme.inputText },
+  freqOptionTextActive: { color: theme.onPrimary, fontWeight: '600' },
   daysRow: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
   dayChip: {
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: borderRadius.xl,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: colors.outline,
-    backgroundColor: colors.surfaceContainerLow,
+    borderColor: theme.outline,
+    backgroundColor: theme.surfaceLow,
   },
-  dayChipActive: { backgroundColor: colors.primaryContainer, borderColor: colors.primaryContainer },
-  dayChipText: { ...typography.labelMd, color: colors.onSurfaceVariant },
-  dayChipTextActive: { color: colors.onPrimary, fontWeight: '600' },
-  errorText: { ...typography.bodyMd, color: colors.error },
+  dayChipActive: { backgroundColor: theme.primaryContainer, borderColor: theme.primaryContainer },
+  dayChipText: { fontSize: 12, fontWeight: '500', lineHeight: 16, color: theme.onSurfaceVariant },
+  dayChipTextActive: { color: theme.onPrimary, fontWeight: '600' },
+  errorText: { fontSize: 14, fontWeight: '400', lineHeight: 20, color: theme.error },
   button: {
-    backgroundColor: colors.primaryContainer,
-    borderRadius: borderRadius.default,
-    minHeight: spacing.touchTargetMin,
+    backgroundColor: theme.primaryContainer,
+    borderRadius: 8,
+    minHeight: 48,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
   },
   buttonDisabled: { opacity: 0.7 },
-  buttonText: { ...typography.labelLg, color: colors.onPrimary },
-});
+  buttonText: { fontSize: 14, fontWeight: '600', lineHeight: 20, color: theme.onPrimary },
+  // Color tokens for dynamic usage
+  onPrimaryColor: { color: theme.onPrimary },
+  primaryContainerColor: { color: theme.primaryContainer },
+}));

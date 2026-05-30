@@ -5,6 +5,7 @@ from app.core.dependencies import get_current_user, get_db
 from app.modules.usuarios.models import Usuario
 from app.modules.usuarios.schemas import (
     PushTokenUpdate,
+    SenhaUpdate,
     UsuarioBuscaResponse,
     UsuarioCreate,
     UsuarioResponse,
@@ -12,6 +13,7 @@ from app.modules.usuarios.schemas import (
 )
 from app.modules.usuarios.service import (
     buscar_paciente_por_email,
+    change_password,
     create_user,
     get_profile,
     update_profile,
@@ -68,3 +70,13 @@ async def update_my_push_token(
 ):
     """Update the authenticated user's push notification token."""
     await update_push_token(current_user, push_token_data, db)
+
+
+@router.put("/me/senha", status_code=status.HTTP_204_NO_CONTENT)
+async def change_my_password(
+    senha_data: SenhaUpdate,
+    current_user: Usuario = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Change the authenticated user's password."""
+    await change_password(current_user, senha_data, db)

@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Platform } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 import DateTimePicker, { DateTimePickerChangeEvent } from '@react-native-community/datetimepicker';
 import { Controller, Control, FieldValues, Path } from 'react-hook-form';
 import { format, parse, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { colors } from '../constants/colors';
-import { typography, spacing, borderRadius } from '../constants/typography';
 
 interface DatePickerInputProps<T extends FieldValues> {
   control: Control<T>;
@@ -96,37 +95,39 @@ export function DatePickerInput<T extends FieldValues>({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(theme => ({
   container: {
     gap: 4,
   },
   label: {
-    ...typography.labelLg,
-    color: colors.onSurface,
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.onSurface,
   },
   input: {
-    ...typography.bodyMd,
-    backgroundColor: colors.surfaceContainerLow,
+    fontSize: 15,
+    backgroundColor: theme.inputBg,
     borderWidth: 1,
-    borderColor: colors.outline,
-    borderRadius: borderRadius.default,
-    paddingHorizontal: spacing.gutter,
-    minHeight: spacing.touchTargetMin,
+    borderColor: theme.outline,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    minHeight: 48,
     justifyContent: 'center',
   },
   inputError: {
-    borderColor: colors.error,
+    borderColor: theme.error,
   },
   inputText: {
-    ...typography.bodyMd,
-    color: colors.onSurface,
+    fontSize: 15,
+    color: theme.inputText,
   },
   placeholder: {
-    color: colors.onSurfaceVariant,
+    color: theme.inputPlaceholder,
   },
   errorText: {
-    ...typography.labelMd,
-    color: colors.error,
+    fontSize: 13,
+    fontWeight: '500',
+    color: theme.error,
   },
   doneButton: {
     alignSelf: 'flex-end',
@@ -134,7 +135,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   doneButtonText: {
-    ...typography.labelLg,
-    color: colors.primaryContainer,
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.primaryContainer,
   },
-});
+}));

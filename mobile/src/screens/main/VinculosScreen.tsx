@@ -2,24 +2,26 @@ import React, { useState } from 'react';
 import {
   View,
   FlatList,
-  StyleSheet,
   RefreshControl,
   TouchableOpacity,
   Text,
   TextInput,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
+import { Ionicons } from '@expo/vector-icons';
 import { useVinculos } from '../../hooks/useVinculos';
+
 import { EmptyState } from '../../components/EmptyState';
 import { ErrorState } from '../../components/ErrorState';
-import { LoadingState } from '../../components/LoadingState';
+import { ListSkeleton } from '../../components/SkeletonLoader';
+import { BottomSheet } from '../../components/BottomSheet';
+import { Toast } from '../../components/Toast';
+import { UserBadge } from '../../components/UserBadge';
 import { api } from '../../services/api';
 import { Vinculo } from '../../types';
-import { colors } from '../../constants/colors';
-import { typography, spacing, borderRadius } from '../../constants/typography';
 import { extractDate } from '../../utils/dateUtils';
 
 interface PacienteBusca {
@@ -29,6 +31,7 @@ interface PacienteBusca {
 }
 
 export function VinculosScreen() {
+  
   const {
     vinculos,
     isLoading,
@@ -46,6 +49,12 @@ export function VinculosScreen() {
   const [creating, setCreating] = useState(false);
   const [pacienteEncontrado, setPacienteEncontrado] = useState<PacienteBusca | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Vinculo | null>(null);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' as 'success' | 'error' | 'info' });
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => {
+    setToast({ visible: true, message, type });
+  };
 
   const handleSearch = async () => {
     const email = emailInput.trim();
@@ -53,15 +62,11 @@ export function VinculosScreen() {
       setSearchError('Informe o e-mail do paciente.');
       return;
     }
-
     setSearching(true);
     setSearchError(null);
     setPacienteEncontrado(null);
-
     try {
-      const { data } = await api.get<PacienteBusca>('/usuarios/buscar', {
-        params: { email },
-      });
+      const { data } = await api.get<PacienteBusca>('/usuarios/buscar', { params: { email } });
       setPacienteEncontrado(data);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { status?: number; data?: { detail?: string } } };
@@ -79,16 +84,22 @@ export function VinculosScreen() {
 
   const handleConfirmVinculo = async () => {
     if (!pacienteEncontrado) return;
-
     setCreating(true);
     const success = await handleCreate(pacienteEncontrado.id);
     setCreating(false);
-
     if (success) {
       setEmailInput('');
       setPacienteEncontrado(null);
       setShowForm(false);
+      showToast('Vínculo criado com sucesso.', 'success');
     }
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    handleDelete(deleteTarget);
+    setDeleteTarget(null);
+    showToast('Vínculo removido.', 'info');
   };
 
   const handleCancelForm = () => {
@@ -100,26 +111,24 @@ export function VinculosScreen() {
 
   const renderVinculoCard = ({ item }: { item: Vinculo }) => (
     <View style={styles.card}>
+      <UserBadge nome={item.paciente_nome || `P${item.paciente_id}`} size={38} />
       <View style={styles.cardContent}>
         <Text style={styles.cardTitle}>{item.paciente_nome || `Paciente #${item.paciente_id}`}</Text>
-        <Text style={styles.cardEmail}>{item.paciente_email || ''}</Text>
-        <Text style={styles.cardSubtitle}>
-          Desde {extractDate(item.data_inicio)}
-        </Text>
+        {item.paciente_email ? <Text style={styles.cardEmail}>{item.paciente_email}</Text> : null}
+        <Text style={styles.cardSubtitle}>Desde {extractDate(item.data_inicio)}</Text>
       </View>
       <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={() => handleDelete(item)}
+        style={styles.deleteIconBtn}
+        onPress={() => setDeleteTarget(item)}
         accessibilityLabel={`Remover vínculo com ${item.paciente_nome || 'paciente'}`}
-        accessibilityRole="button"
       >
-        <Text style={styles.deleteButtonText}>Remover</Text>
+        <Ionicons name="trash-outline" size={18} color={styles.errorColor.color} />
       </TouchableOpacity>
     </View>
   );
 
   if (isLoading) {
-    return <LoadingState label="Carregando vínculos" />;
+    return <ListSkeleton count={3} />;
   }
 
   if (error) {
@@ -127,293 +136,185 @@ export function VinculosScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={() => setToast((t) => ({ ...t, visible: false }))} />
+
+      {/* Section header */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Pacientes vinculados</Text>
+        <Text style={styles.sectionCount}>{vinculos.length}</Text>
+      </View>
+
       <FlatList
         data={vinculos}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderVinculoCard}
-        contentContainerStyle={
-          vinculos.length === 0 ? styles.emptyContainer : styles.listContent
-        }
+        contentContainerStyle={vinculos.length === 0 ? styles.emptyContainer : styles.listContent}
         ListEmptyComponent={
           <EmptyState
             emoji="🔗"
             title="Nenhum vínculo ativo"
             subtitle="Associe-se a um paciente para gerenciar seus medicamentos."
+            actionLabel="Adicionar Vínculo"
+            onAction={() => setShowForm(true)}
           />
         }
         refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            colors={[colors.primaryContainer]}
-            tintColor={colors.primaryContainer}
-          />
+          <RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={[styles.refreshColor.color]} tintColor={styles.refreshColor.color} />
         }
-        accessibilityLabel="Lista de vínculos"
       />
 
+      {/* Add form */}
       {showForm && (
         <View style={styles.formContainer}>
-          <Text style={styles.formTitle}>Novo Vínculo</Text>
-          <Text style={styles.formHint}>
-            Informe o e-mail do paciente que deseja associar
-          </Text>
+          <View style={styles.formHeader}>
+            <Text style={styles.formTitle}>Novo Vínculo</Text>
+            <TouchableOpacity onPress={handleCancelForm} accessibilityLabel="Fechar">
+              <Ionicons name="close" size={22} color={styles.onSurfaceVariantColor.color} />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.formHint}>Informe o e-mail do paciente</Text>
 
           <View style={styles.searchRow}>
             <TextInput
               style={styles.input}
               value={emailInput}
-              onChangeText={(text) => {
-                setEmailInput(text);
-                setPacienteEncontrado(null);
-                setSearchError(null);
-              }}
+              onChangeText={(text) => { setEmailInput(text); setPacienteEncontrado(null); setSearchError(null); }}
               placeholder="email@do-paciente.com"
-              placeholderTextColor={colors.onSurfaceVariant}
+              placeholderTextColor={styles.onSurfaceVariantColor.color}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
-              accessibilityLabel="E-mail do paciente"
               editable={!creating}
             />
             <TouchableOpacity
-              style={[styles.searchButton, searching && styles.buttonDisabled]}
+              style={[styles.searchBtn, searching && styles.btnDisabled]}
               onPress={handleSearch}
               disabled={searching || creating}
-              accessibilityLabel="Buscar paciente"
-              accessibilityRole="button"
             >
               {searching ? (
-                <ActivityIndicator size="small" color={colors.onPrimary} />
+                <ActivityIndicator size="small" color={styles.onPrimaryColor.color} />
               ) : (
-                <Text style={styles.searchButtonText}>Buscar</Text>
+                <Ionicons name="search" size={18} color={styles.onPrimaryColor.color} />
               )}
             </TouchableOpacity>
           </View>
 
-          {searchError && (
-            <Text style={styles.errorText}>{searchError}</Text>
-          )}
+          {searchError && <Text style={styles.errorText}>{searchError}</Text>}
 
           {pacienteEncontrado && (
             <View style={styles.resultCard}>
-              <Text style={styles.resultName}>{pacienteEncontrado.nome}</Text>
-              <Text style={styles.resultEmail}>{pacienteEncontrado.email}</Text>
+              <Ionicons name="person-circle-outline" size={32} color={styles.secondaryColor.color} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.resultName}>{pacienteEncontrado.nome}</Text>
+                <Text style={styles.resultEmail}>{pacienteEncontrado.email}</Text>
+              </View>
               <TouchableOpacity
-                style={[styles.confirmButton, creating && styles.buttonDisabled]}
+                style={[styles.linkBtn, creating && styles.btnDisabled]}
                 onPress={handleConfirmVinculo}
                 disabled={creating}
-                accessibilityLabel={`Vincular com ${pacienteEncontrado.nome}`}
-                accessibilityRole="button"
               >
                 {creating ? (
-                  <ActivityIndicator size="small" color={colors.onPrimary} />
+                  <ActivityIndicator size="small" color={styles.onSecondaryColor.color} />
                 ) : (
-                  <Text style={styles.confirmButtonText}>Vincular</Text>
+                  <>
+                    <Ionicons name="link" size={14} color={styles.onSecondaryColor.color} />
+                    <Text style={styles.linkBtnText}>Vincular</Text>
+                  </>
                 )}
               </TouchableOpacity>
             </View>
           )}
-
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={handleCancelForm}
-            disabled={creating}
-            accessibilityLabel="Cancelar"
-            accessibilityRole="button"
-          >
-            <Text style={styles.cancelButtonText}>Cancelar</Text>
-          </TouchableOpacity>
         </View>
       )}
 
-      {!showForm && (
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => setShowForm(true)}
-          accessibilityLabel="Adicionar novo vínculo"
-          accessibilityRole="button"
-        >
-          <Text style={styles.fabText}>+</Text>
+      {!showForm && vinculos.length > 0 && (
+        <TouchableOpacity style={styles.fab} onPress={() => setShowForm(true)} accessibilityLabel="Adicionar novo vínculo">
+          <Ionicons name="add" size={26} color={styles.onPrimaryColor.color} />
         </TouchableOpacity>
       )}
+
+      <BottomSheet
+        visible={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        title="Remover Vínculo"
+        description={`Deseja remover o vínculo com ${deleteTarget?.paciente_nome || 'este paciente'}?`}
+        icon="🔗"
+        actions={[
+          { label: 'Remover', variant: 'destructive', onPress: handleConfirmDelete },
+          { label: 'Cancelar', variant: 'cancel', onPress: () => setDeleteTarget(null) },
+        ]}
+      />
     </KeyboardAvoidingView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.backgroundApp,
+const styles = StyleSheet.create(theme => ({
+  container: { flex: 1, backgroundColor: theme.backgroundApp },
+  sectionHeader: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 20, paddingTop: 14, paddingBottom: 6,
   },
-  listContent: {
-    padding: spacing.marginMobile,
-    paddingBottom: 80,
+  sectionTitle: { fontSize: 13, fontWeight: '500', color: theme.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionCount: {
+    fontSize: 13, fontWeight: '500', color: theme.onSurfaceVariant,
+    backgroundColor: theme.surfaceHigh, borderRadius: 9999,
+    paddingHorizontal: 8, paddingVertical: 2, overflow: 'hidden',
   },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: spacing.marginMobile,
-  },
+  listContent: { paddingHorizontal: 20, paddingBottom: 80 },
+  emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
   card: {
-    backgroundColor: colors.surfaceCard,
-    borderRadius: borderRadius.md,
-    padding: spacing.cardPadding,
-    marginBottom: spacing.stackGap,
-    flexDirection: 'row',
-    alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    backgroundColor: theme.surfaceCard, borderRadius: 12,
+    padding: 14, marginBottom: 10, flexDirection: 'row', alignItems: 'center', gap: 12,
+    borderWidth: 1, borderColor: theme.outlineVariant,
   },
-  cardContent: {
-    flex: 1,
-  },
-  cardTitle: {
-    ...typography.labelLg,
-    color: colors.onSurface,
-  },
-  cardEmail: {
-    ...typography.bodyMd,
-    color: colors.onSurfaceVariant,
-    marginTop: 2,
-  },
-  cardSubtitle: {
-    ...typography.bodyMd,
-    color: colors.onSurfaceVariant,
-    marginTop: 4,
-  },
-  deleteButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: borderRadius.default,
-    backgroundColor: colors.errorContainer,
-  },
-  deleteButtonText: {
-    ...typography.labelMd,
-    color: colors.error,
-  },
+  cardContent: { flex: 1 },
+  cardTitle: { fontSize: 15, fontWeight: '600', color: theme.onSurface },
+  cardEmail: { fontSize: 13, fontWeight: '500', color: theme.onSurfaceVariant, marginTop: 1 },
+  cardSubtitle: { fontSize: 12, fontWeight: '500', color: theme.outline, marginTop: 2 },
+  deleteIconBtn: { padding: 8 },
   formContainer: {
-    backgroundColor: colors.surfaceCard,
-    borderTopLeftRadius: borderRadius.lg,
-    borderTopRightRadius: borderRadius.lg,
-    padding: spacing.cardPadding,
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    gap: 12,
+    backgroundColor: theme.surfaceCard, borderTopLeftRadius: 16, borderTopRightRadius: 16,
+    padding: 16, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.15, shadowRadius: 6, gap: 10,
   },
-  formTitle: {
-    ...typography.headlineMd,
-    color: colors.onSurface,
-  },
-  formHint: {
-    ...typography.bodyMd,
-    color: colors.onSurfaceVariant,
-  },
-  searchRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
+  formHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  formTitle: { fontSize: 18, fontWeight: '600', color: theme.onSurface },
+  formHint: { fontSize: 14, color: theme.onSurfaceVariant },
+  searchRow: { flexDirection: 'row', gap: 8 },
   input: {
-    ...typography.bodyMd,
-    flex: 1,
-    backgroundColor: colors.surfaceContainerLow,
-    borderWidth: 1,
-    borderColor: colors.outline,
-    borderRadius: borderRadius.default,
-    paddingHorizontal: spacing.gutter,
-    minHeight: spacing.touchTargetMin,
-    color: colors.onSurface,
+    fontSize: 15, flex: 1, backgroundColor: theme.inputBg,
+    borderWidth: 1, borderColor: theme.outline, borderRadius: 8,
+    paddingHorizontal: 12, minHeight: 42, color: theme.inputText,
   },
-  searchButton: {
-    minHeight: spacing.touchTargetMin,
-    paddingHorizontal: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: borderRadius.default,
-    backgroundColor: colors.primaryContainer,
+  searchBtn: {
+    width: 42, height: 42, borderRadius: 8,
+    backgroundColor: theme.primaryContainer, justifyContent: 'center', alignItems: 'center',
   },
-  searchButtonText: {
-    ...typography.labelLg,
-    color: colors.onPrimary,
-  },
-  errorText: {
-    ...typography.bodyMd,
-    color: colors.error,
-  },
+  btnDisabled: { opacity: 0.6 },
+  errorText: { fontSize: 13, fontWeight: '500', color: theme.error },
   resultCard: {
-    backgroundColor: colors.surfaceContainerLow,
-    borderRadius: borderRadius.default,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: colors.secondary,
-    gap: 8,
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: theme.surfaceLow, borderRadius: 8,
+    padding: 12, borderWidth: 1, borderColor: theme.secondary,
   },
-  resultName: {
-    ...typography.labelLg,
-    color: colors.onSurface,
+  resultName: { fontSize: 14, fontWeight: '600', color: theme.onSurface },
+  resultEmail: { fontSize: 13, fontWeight: '500', color: theme.onSurfaceVariant },
+  linkBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8,
+    backgroundColor: theme.secondary,
   },
-  resultEmail: {
-    ...typography.bodyMd,
-    color: colors.onSurfaceVariant,
-  },
-  confirmButton: {
-    minHeight: spacing.touchTargetMin,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: borderRadius.default,
-    backgroundColor: colors.secondary,
-    marginTop: 4,
-  },
-  confirmButtonText: {
-    ...typography.labelLg,
-    color: colors.onSecondary,
-  },
-  cancelButton: {
-    minHeight: spacing.touchTargetMin,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: borderRadius.default,
-    borderWidth: 1,
-    borderColor: colors.outline,
-  },
-  cancelButtonText: {
-    ...typography.labelLg,
-    color: colors.onSurfaceVariant,
-  },
-  buttonDisabled: {
-    opacity: 0.7,
-  },
+  linkBtnText: { fontSize: 13, fontWeight: '500', color: theme.onSecondary },
   fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primaryContainer,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    position: 'absolute', bottom: 24, right: 24, width: 52, height: 52, borderRadius: 26,
+    backgroundColor: theme.primaryContainer, justifyContent: 'center', alignItems: 'center',
+    elevation: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 4,
   },
-  fabText: {
-    fontSize: 28,
-    color: colors.onPrimary,
-    fontWeight: '600',
-    lineHeight: 30,
-  },
-});
+  errorColor: { color: theme.error },
+  onSurfaceVariantColor: { color: theme.onSurfaceVariant },
+  onPrimaryColor: { color: theme.onPrimary },
+  secondaryColor: { color: theme.secondary },
+  onSecondaryColor: { color: theme.onSecondary },
+  refreshColor: { color: theme.primaryContainer },
+}));

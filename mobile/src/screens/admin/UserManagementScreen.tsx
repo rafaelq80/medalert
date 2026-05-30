@@ -2,18 +2,20 @@ import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   FlatList,
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   RefreshControl,
 } from 'react-native';
+import { Toast } from '../../components/Toast';
+import { StyleSheet } from 'react-native-unistyles';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { AdminStackParamList } from '../../navigation/AdminNavigator';
-import { colors } from '../../constants/colors';
+import { Ionicons } from '@expo/vector-icons';
+import { UserBadge } from '../../components/UserBadge';
+import { BottomSheet } from '../../components/BottomSheet';
 import {
   listarUsuarios,
   ativarUsuario,
@@ -34,6 +36,9 @@ const TYPE_LABELS: Record<string, string> = {
 
 export function UserManagementScreen() {
   const navigation = useNavigation<NavigationProp>();
+
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' as 'success' | 'error' | 'info' });
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => setToast({ visible: true, message, type });
 
   const [usuarios, setUsuarios] = useState<UsuarioAdmin[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +78,7 @@ export function UserManagementScreen() {
         setTotal(data.total);
         setPage(pageNum);
       } catch {
-        Alert.alert('Erro', 'Não foi possível carregar a lista de usuários.');
+        showToast('Não foi possível carregar a lista de usuários.', 'error');
       } finally {
         setLoading(false);
         setLoadingMore(false);
@@ -97,38 +102,29 @@ export function UserManagementScreen() {
     fetchUsuarios(page + 1, true);
   }, [loadingMore, usuarios.length, total, page, fetchUsuarios]);
 
+  const [toggleTarget, setToggleTarget] = useState<UsuarioAdmin | null>(null);
+
   const handleToggleAtivo = useCallback(
     (usuario: UsuarioAdmin) => {
-      const action = usuario.ativo ? 'desativar' : 'ativar';
-      const actionLabel = usuario.ativo ? 'Desativar' : 'Ativar';
-
-      Alert.alert(
-        `${actionLabel} Usuário`,
-        `Tem certeza que deseja ${action} o usuário "${usuario.nome}"?`,
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: actionLabel,
-            style: usuario.ativo ? 'destructive' : 'default',
-            onPress: async () => {
-              try {
-                if (usuario.ativo) {
-                  await desativarUsuario(usuario.id);
-                } else {
-                  await ativarUsuario(usuario.id);
-                }
-                Alert.alert('Sucesso', `Usuário ${usuario.ativo ? 'desativado' : 'ativado'} com sucesso.`);
-                fetchUsuarios(1);
-              } catch {
-                Alert.alert('Erro', `Não foi possível ${action} o usuário.`);
-              }
-            },
-          },
-        ],
-      );
+      setToggleTarget(usuario);
     },
-    [fetchUsuarios],
+    [],
   );
+
+  const doToggleAtivo = useCallback(async () => {
+    if (!toggleTarget) return;
+    setToggleTarget(null);
+    try {
+      if (toggleTarget.ativo) {
+        await desativarUsuario(toggleTarget.id);
+      } else {
+        await ativarUsuario(toggleTarget.id);
+      }
+      fetchUsuarios(1);
+    } catch {
+      showToast('Não foi possível alterar o status.', 'error');
+    }
+  }, [toggleTarget, fetchUsuarios]);
 
   const handleUserPress = useCallback(
     (usuario: UsuarioAdmin) => {
@@ -148,16 +144,18 @@ export function UserManagementScreen() {
     <View style={styles.filtersContainer}>
       {USER_TYPES.map((tipo) => {
         const isActive = tipoFiltro === tipo;
+        const badgeStyle = getTypeBadgeStyle(tipo);
+        const textColor = isActive ? getTypeBadgeTextColor(tipo) : undefined;
         return (
           <TouchableOpacity
             key={tipo}
-            style={[styles.filterChip, isActive && styles.filterChipActive]}
+            style={[styles.filterChip, isActive && badgeStyle]}
             onPress={() => handleFilterPress(tipo)}
             accessibilityRole="button"
             accessibilityLabel={`Filtrar por ${TYPE_LABELS[tipo]}`}
             accessibilityState={{ selected: isActive }}
           >
-            <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
+            <Text style={[styles.filterChipText, isActive && { color: textColor }]}>
               {TYPE_LABELS[tipo]}
             </Text>
           </TouchableOpacity>
@@ -174,15 +172,16 @@ export function UserManagementScreen() {
       accessibilityRole="button"
       accessibilityLabel={`Usuário ${item.nome}, ${TYPE_LABELS[item.tipo]}, ${item.ativo ? 'ativo' : 'inativo'}`}
     >
+      <View style={styles.badgeWrapper}>
+        <UserBadge nome={item.nome} size={38} />
+        <View style={[styles.statusDot, item.ativo ? styles.statusActive : styles.statusInactive]} />
+      </View>
       <View style={styles.userInfo}>
         <Text style={styles.userName}>{item.nome}</Text>
         <Text style={styles.userEmail}>{item.email}</Text>
       </View>
-      <View style={styles.userMeta}>
-        <View style={[styles.typeBadge, getTypeBadgeStyle(item.tipo)]}>
-          <Text style={styles.typeBadgeText}>{TYPE_LABELS[item.tipo]}</Text>
-        </View>
-        <View style={[styles.statusDot, item.ativo ? styles.statusActive : styles.statusInactive]} />
+      <View style={[styles.typeBadge, getTypeBadgeStyle(item.tipo)]}>
+        <Text style={[styles.typeBadgeText, { color: getTypeBadgeTextColor(item.tipo) }]}>{TYPE_LABELS[item.tipo]}</Text>
       </View>
     </TouchableOpacity>
   );
@@ -191,7 +190,7 @@ export function UserManagementScreen() {
     if (!loadingMore) return null;
     return (
       <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color={colors.primary} />
+        <ActivityIndicator size="small" color={styles.primaryColor.color} />
       </View>
     );
   };
@@ -207,11 +206,19 @@ export function UserManagementScreen() {
 
   return (
     <View style={styles.container}>
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={() => setToast(t => ({ ...t, visible: false }))} />
+
+      {/* Section title */}
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Usuários</Text>
+        <Text style={styles.sectionCount}>{total}</Text>
+      </View>
+
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
           placeholder="Buscar por nome ou email..."
-          placeholderTextColor={colors.onSurfaceVariant}
+          placeholderTextColor={styles.onSurfaceVariantColor.color}
           value={busca}
           onChangeText={setBusca}
           returnKeyType="search"
@@ -223,7 +230,7 @@ export function UserManagementScreen() {
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
+          <ActivityIndicator size="large" color={styles.primaryColor.color} />
           <Text style={styles.loadingText}>Carregando usuários...</Text>
         </View>
       ) : (
@@ -239,13 +246,25 @@ export function UserManagementScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              colors={[colors.primary]}
-              tintColor={colors.primary}
+              colors={[styles.primaryColor.color]}
+              tintColor={styles.primaryColor.color}
             />
           }
           contentContainerStyle={usuarios.length === 0 ? styles.listEmpty : styles.listContent}
         />
       )}
+
+      <BottomSheet
+        visible={!!toggleTarget}
+        onClose={() => setToggleTarget(null)}
+        title={toggleTarget?.ativo ? 'Desativar Usuário' : 'Ativar Usuário'}
+        description={`Deseja ${toggleTarget?.ativo ? 'desativar' : 'ativar'} "${toggleTarget?.nome}"?`}
+        icon={toggleTarget?.ativo ? '⛔' : '✅'}
+        actions={[
+          { label: toggleTarget?.ativo ? 'Desativar' : 'Ativar', variant: toggleTarget?.ativo ? 'destructive' : 'default', onPress: doToggleAtivo },
+          { label: 'Cancelar', variant: 'cancel', onPress: () => setToggleTarget(null) },
+        ]}
+      />
     </View>
   );
 }
@@ -253,22 +272,57 @@ export function UserManagementScreen() {
 function getTypeBadgeStyle(tipo: string) {
   switch (tipo) {
     case 'ADMIN':
-      return { backgroundColor: colors.errorContainer };
+      return { backgroundColor: '#c62828' }; // vermelho escuro — fonte branca
     case 'PACIENTE':
-      return { backgroundColor: colors.onPrimaryContainer };
+      return { backgroundColor: '#bbdefb' }; // azul claro — fonte escura
     case 'RESPONSAVEL':
-      return { backgroundColor: colors.secondaryContainer };
+      return { backgroundColor: '#1565c0' }; // azul escuro — fonte branca
     case 'CUIDADOR':
-      return { backgroundColor: '#E8DEF8' };
+      return { backgroundColor: '#ce93d8' }; // lilás — fonte escura
     default:
-      return { backgroundColor: colors.surfaceContainerHigh };
+      return { backgroundColor: '#e0e0e0' };
   }
 }
 
-const styles = StyleSheet.create({
+function getTypeBadgeTextColor(tipo: string) {
+  switch (tipo) {
+    case 'ADMIN':
+    case 'RESPONSAVEL':
+      return '#ffffff';
+    default:
+      return '#1a1a1a';
+  }
+}
+
+const styles = StyleSheet.create(theme => ({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundApp,
+    backgroundColor: theme.backgroundApp,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 6,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: theme.onSurfaceVariant,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  sectionCount: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: theme.onSurfaceVariant,
+    backgroundColor: theme.surfaceHigh,
+    borderRadius: 9999,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    overflow: 'hidden',
   },
   searchContainer: {
     paddingHorizontal: 16,
@@ -276,14 +330,14 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   searchInput: {
-    backgroundColor: colors.surfaceCard,
+    backgroundColor: theme.surfaceCard,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
-    color: colors.onSurface,
+    color: theme.onSurface,
     borderWidth: 1,
-    borderColor: colors.outlineVariant,
+    borderColor: theme.outlineVariant,
   },
   filtersContainer: {
     flexDirection: 'row',
@@ -295,21 +349,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: colors.surfaceContainerHigh,
+    backgroundColor: theme.surfaceHigh,
     borderWidth: 1,
-    borderColor: colors.outlineVariant,
+    borderColor: theme.outlineVariant,
   },
   filterChipActive: {
-    backgroundColor: colors.primaryContainer,
-    borderColor: colors.primaryContainer,
+    backgroundColor: theme.primaryContainer,
+    borderColor: theme.primaryContainer,
   },
   filterChipText: {
     fontSize: 13,
-    color: colors.onSurfaceVariant,
+    color: theme.onSurfaceVariant,
     fontWeight: '500',
   },
   filterChipTextActive: {
-    color: colors.onPrimary,
+    color: theme.onTag,
   },
   loadingContainer: {
     flex: 1,
@@ -319,7 +373,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: colors.onSurfaceVariant,
+    color: theme.onSurfaceVariant,
   },
   listContent: {
     paddingHorizontal: 16,
@@ -331,12 +385,13 @@ const styles = StyleSheet.create({
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.surfaceCard,
+    gap: 12,
+    backgroundColor: theme.surfaceCard,
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: colors.outlineVariant,
+    borderColor: theme.outlineVariant,
   },
   userInfo: {
     flex: 1,
@@ -344,37 +399,42 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: 16,
     fontWeight: '600',
-    color: colors.onSurface,
+    color: theme.onSurface,
   },
   userEmail: {
     fontSize: 13,
-    color: colors.onSurfaceVariant,
+    color: theme.onSurfaceVariant,
     marginTop: 2,
   },
-  userMeta: {
-    alignItems: 'flex-end',
-    gap: 6,
+  badgeWrapper: {
+    position: 'relative',
+  },
+  statusDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: '#252525',
   },
   typeBadge: {
+    minWidth: 90,
+    alignItems: 'center',
     paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingVertical: 4,
     borderRadius: 10,
   },
   typeBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: colors.onSurface,
-  },
-  statusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
   },
   statusActive: {
-    backgroundColor: colors.secondary,
+    backgroundColor: theme.secondary,
   },
   statusInactive: {
-    backgroundColor: colors.error,
+    backgroundColor: theme.error,
   },
   footerLoader: {
     paddingVertical: 16,
@@ -388,7 +448,13 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: colors.onSurfaceVariant,
+    color: theme.onSurfaceVariant,
     textAlign: 'center',
   },
-});
+  primaryColor: { color: theme.primary },
+  onSurfaceVariantColor: { color: theme.onSurfaceVariant },
+  errorContainerBg: { backgroundColor: theme.errorContainer },
+  onPrimaryContainerBg: { backgroundColor: theme.primaryContainer },
+  secondaryContainerBg: { backgroundColor: theme.secondaryContainer },
+  surfaceHighBg: { backgroundColor: theme.surfaceHigh },
+}));

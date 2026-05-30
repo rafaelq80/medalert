@@ -1,9 +1,9 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import { subDays, format } from 'date-fns';
+import { useUnistyles } from 'react-native-unistyles';
 import { api } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
-import { colors } from '../constants/colors';
 import { RegistroTomada, Vinculo } from '../types';
 
 export interface PacienteOption {
@@ -32,6 +32,7 @@ export interface UseHistoricoReturn {
 
 export function useHistorico(): UseHistoricoReturn {
   const { user } = useAuth();
+  const { theme } = useUnistyles();
   const [registros, setRegistros] = useState<RegistroTomada[]>([]);
   const [selectedPeriod, setSelectedPeriod] = useState<7 | 15 | 30>(7);
   const [pacienteNome, setPacienteNome] = useState<string | null>(null);
@@ -153,7 +154,7 @@ export function useHistorico(): UseHistoricoReturn {
   );
 
   const adherenceColor =
-    adherencePercentage >= 80 ? colors.statusConfirmed : colors.statusDelayed;
+    adherencePercentage >= 80 ? theme.statusConfirmed : theme.statusDelayed;
 
   const retry = useCallback(() => {
     setIsLoading(true);

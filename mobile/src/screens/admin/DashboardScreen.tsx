@@ -3,14 +3,13 @@ import {
   View,
   Text,
   ScrollView,
-  StyleSheet,
   RefreshControl,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
-import { colors } from '../../constants/colors';
-import { typography, spacing, borderRadius } from '../../constants/typography';
+import { Toast } from '../../components/Toast';
+import { StyleSheet } from 'react-native-unistyles';
+import { Ionicons } from '@expo/vector-icons';
 import { LoadingState } from '../../components/LoadingState';
 import { ErrorState } from '../../components/ErrorState';
 import { obterMetricas, Metricas } from '../../services/adminApi';
@@ -19,19 +18,21 @@ import { api } from '../../services/api';
 interface MetricCardProps {
   title: string;
   value: string;
-  color?: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  bgColor: string;
 }
 
-function MetricCard({ title, value, color = colors.primary }: MetricCardProps) {
+function MetricCard({ title, value, icon, color, bgColor }: MetricCardProps) {
   return (
-    <View
-      style={styles.card}
-      accessible
-      accessibilityRole="summary"
-      accessibilityLabel={`${title}: ${value}`}
-    >
-      <Text style={styles.cardTitle}>{title}</Text>
-      <Text style={[styles.cardValue, { color }]}>{value}</Text>
+    <View style={styles.card} accessible accessibilityLabel={`${title}: ${value}`}>
+      <View style={[styles.cardIconContainer, { backgroundColor: bgColor }]}>
+        <Ionicons name={icon} size={24} color={color} />
+      </View>
+      <View style={styles.cardTextContainer}>
+        <Text style={styles.cardValue}>{value}</Text>
+        <Text style={styles.cardTitle}>{title}</Text>
+      </View>
     </View>
   );
 }
@@ -42,16 +43,16 @@ export function DashboardScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [gerandoRegistros, setGerandoRegistros] = useState(false);
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'info' as 'success' | 'error' | 'info' });
+  const showToast = (message: string, type: 'success' | 'error' | 'info') => setToast({ visible: true, message, type });
 
   const fetchMetricas = useCallback(async (showFullLoading = true) => {
     try {
-      if (showFullLoading) {
-        setIsLoading(true);
-      }
+      if (showFullLoading) setIsLoading(true);
       setError(null);
       const response = await obterMetricas();
       setMetricas(response.data);
-    } catch (err) {
+    } catch {
       setError('Não foi possível carregar as métricas do sistema.');
     } finally {
       setIsLoading(false);
@@ -59,210 +60,127 @@ export function DashboardScreen() {
     }
   }, []);
 
-  useEffect(() => {
-    fetchMetricas();
-  }, [fetchMetricas]);
+  useEffect(() => { fetchMetricas(); }, [fetchMetricas]);
 
-  const handleRefresh = useCallback(() => {
-    setIsRefreshing(true);
-    fetchMetricas(false);
-  }, [fetchMetricas]);
-
-  const handleRetry = useCallback(() => {
-    fetchMetricas(true);
-  }, [fetchMetricas]);
+  const handleRefresh = useCallback(() => { setIsRefreshing(true); fetchMetricas(false); }, [fetchMetricas]);
+  const handleRetry = useCallback(() => { fetchMetricas(true); }, [fetchMetricas]);
 
   const handleGerarRegistros = useCallback(async () => {
     setGerandoRegistros(true);
     try {
       await api.post('/admin/scheduler/gerar-registros');
-      Alert.alert('Sucesso', 'Registros de tomada do dia gerados com sucesso.');
+      showToast('Registros de tomada do dia gerados com sucesso.', 'success');
     } catch {
-      Alert.alert('Erro', 'Não foi possível gerar os registros. Tente novamente.');
+      showToast('Não foi possível gerar os registros.', 'error');
     } finally {
       setGerandoRegistros(false);
     }
   }, []);
 
-  if (isLoading) {
-    return <LoadingState label="Carregando métricas" />;
-  }
+  if (isLoading) return <LoadingState label="Carregando métricas" />;
+  if (error) return <ErrorState message={error} onRetry={handleRetry} />;
+  if (!metricas) return null;
 
-  if (error) {
-    return <ErrorState message={error} onRetry={handleRetry} />;
-  }
-
-  if (!metricas) {
-    return null;
-  }
-
-  const totalUsuarios = Object.values(metricas.usuarios_por_tipo).reduce(
-    (sum, count) => sum + count,
-    0,
-  );
+  const totalUsuarios = Object.values(metricas.usuarios_por_tipo).reduce((s, c) => s + c, 0);
 
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={styles.content}
-      refreshControl={
-        <RefreshControl
-          refreshing={isRefreshing}
-          onRefresh={handleRefresh}
-          colors={[colors.primaryContainer]}
-          tintColor={colors.primaryContainer}
-        />
-      }
-      accessibilityLabel="Dashboard administrativo"
+      refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={handleRefresh} colors={[styles.refreshColor.color]} />}
     >
-      <Text style={styles.heading}>Dashboard</Text>
-      <Text style={styles.subtitle}>Métricas do sistema</Text>
-
-      {/* Usuários por tipo */}
-      <Text style={styles.sectionTitle}>Usuários por tipo</Text>
+      <Toast visible={toast.visible} message={toast.message} type={toast.type} onDismiss={() => setToast(t => ({ ...t, visible: false }))} />
+      {/* Section: Usuários */}
+      <Text style={styles.sectionTitle}>Usuários</Text>
       <View style={styles.cardGrid}>
-        <MetricCard
-          title="Total de usuários"
-          value={totalUsuarios.toString()}
-          color={colors.primary}
-        />
-        {Object.entries(metricas.usuarios_por_tipo).map(([tipo, count]) => (
-          <MetricCard
-            key={tipo}
-            title={tipo.charAt(0) + tipo.slice(1).toLowerCase()}
-            value={count.toString()}
-            color={colors.onSurfaceVariant}
-          />
-        ))}
+        <MetricCard title="Total" value={totalUsuarios.toString()} icon="people" color={styles.primaryColor.color} bgColor={styles.surfaceHighBg.backgroundColor} />
+        <MetricCard title="Pacientes" value={(metricas.usuarios_por_tipo.PACIENTE ?? 0).toString()} icon="person" color={styles.statusPendingColor.color} bgColor="#E3F2FD" />
+        <MetricCard title="Responsáveis" value={(metricas.usuarios_por_tipo.RESPONSAVEL ?? 0).toString()} icon="shield-checkmark" color={styles.secondaryColor.color} bgColor="#E8F5E9" />
+        <MetricCard title="Cuidadores" value={(metricas.usuarios_por_tipo.CUIDADOR ?? 0).toString()} icon="heart" color="#7B1FA2" bgColor="#F3E5F5" />
       </View>
 
-      {/* Atividade */}
+      {/* Section: Atividade */}
       <Text style={styles.sectionTitle}>Atividade</Text>
       <View style={styles.cardGrid}>
-        <MetricCard
-          title="Usuários ativos"
-          value={metricas.usuarios_ativos.toString()}
-          color={colors.secondary}
-        />
-        <MetricCard
-          title="Vínculos ativos"
-          value={metricas.vinculos_ativos.toString()}
-          color={colors.primary}
-        />
+        <MetricCard title="Ativos" value={metricas.usuarios_ativos.toString()} icon="checkmark-circle" color={styles.statusConfirmedColor.color} bgColor="#E8F5E9" />
+        <MetricCard title="Vínculos" value={metricas.vinculos_ativos.toString()} icon="link" color={styles.primaryColor.color} bgColor="#E3F2FD" />
       </View>
 
-      {/* Adesão */}
-      <Text style={styles.sectionTitle}>Adesão (últimos 30 dias)</Text>
+      {/* Section: Adesão */}
+      <Text style={styles.sectionTitle}>Adesão (30 dias)</Text>
       <View style={styles.cardGrid}>
-        <MetricCard
-          title="Taxa de adesão"
-          value={`${metricas.taxa_adesao_30d.toFixed(1)}%`}
-          color={colors.statusConfirmed}
-        />
-        <MetricCard
-          title="Registros atrasados"
-          value={metricas.registros_atrasados_30d.toString()}
-          color={colors.statusDelayed}
-        />
-        <MetricCard
-          title="Registros ignorados"
-          value={metricas.registros_ignorados_30d.toString()}
-          color={colors.statusIgnored}
-        />
+        <MetricCard title="Taxa" value={`${metricas.taxa_adesao_30d.toFixed(0)}%`} icon="trending-up" color={styles.statusConfirmedColor.color} bgColor="#E8F5E9" />
+        <MetricCard title="Atrasados" value={metricas.registros_atrasados_30d.toString()} icon="time" color={styles.statusDelayedColor.color} bgColor="#FFEBEE" />
+        <MetricCard title="Ignorados" value={metricas.registros_ignorados_30d.toString()} icon="close-circle" color={styles.statusIgnoredColor.color} bgColor="#ECEFF1" />
       </View>
 
-      {/* Ações do Scheduler */}
+      {/* Section: Ações */}
       <Text style={styles.sectionTitle}>Ações</Text>
       <TouchableOpacity
-        style={[styles.actionButton, gerandoRegistros && styles.actionButtonDisabled]}
+        style={[styles.actionRow, gerandoRegistros && styles.actionDisabled]}
         onPress={handleGerarRegistros}
         disabled={gerandoRegistros}
         accessibilityLabel="Gerar registros de tomada do dia"
-        accessibilityRole="button"
       >
-        {gerandoRegistros ? (
-          <ActivityIndicator size="small" color={colors.onPrimary} />
-        ) : (
-          <Text style={styles.actionButtonText}>⏰ Gerar Registros do Dia</Text>
-        )}
+        <View style={styles.actionIcon}>
+          {gerandoRegistros ? (
+            <ActivityIndicator size="small" color={styles.refreshColor.color} />
+          ) : (
+            <Ionicons name="timer-outline" size={20} color={styles.refreshColor.color} />
+          )}
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.actionTitle}>Gerar Registros do Dia</Text>
+          <Text style={styles.actionHint}>Cria registros de tomada para agendas ativas de hoje</Text>
+        </View>
+        <Ionicons name="chevron-forward" size={18} color={styles.outlineColor.color} />
       </TouchableOpacity>
-      <Text style={styles.actionHint}>
-        Gera os registros de tomada para todas as agendas ativas de hoje.
-      </Text>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.backgroundApp,
-  },
-  content: {
-    padding: spacing.marginMobile,
-    paddingBottom: 40,
-  },
-  heading: {
-    ...typography.headlineMd,
-    color: colors.onSurface,
-  },
-  subtitle: {
-    ...typography.bodyMd,
-    color: colors.onSurfaceVariant,
-    marginTop: 4,
-    marginBottom: spacing.gutter,
-  },
+const styles = StyleSheet.create(theme => ({
+  container: { flex: 1, backgroundColor: theme.backgroundApp },
+  content: { padding: 20, paddingBottom: 40 },
   sectionTitle: {
-    ...typography.labelLg,
-    color: colors.onSurface,
-    marginTop: spacing.gutter,
-    marginBottom: spacing.stackGap,
+    fontSize: 13, fontWeight: '500', color: theme.onSurfaceVariant,
+    textTransform: 'uppercase', letterSpacing: 0.5,
+    marginTop: 20, marginBottom: 10,
   },
-  cardGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.stackGap,
-  },
+  cardGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   card: {
-    backgroundColor: colors.surfaceCard,
-    borderRadius: borderRadius.md,
-    padding: spacing.cardPadding,
-    minWidth: '45%',
-    flexGrow: 1,
-    flexBasis: '45%',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
+    backgroundColor: theme.surfaceCard, borderRadius: 12,
+    padding: 14, minWidth: '47%', flexGrow: 1, flexBasis: '47%',
+    borderWidth: 1, borderColor: theme.outlineVariant,
+    flexDirection: 'row', alignItems: 'center', gap: 12,
   },
-  cardTitle: {
-    ...typography.labelMd,
-    color: colors.onSurfaceVariant,
-    marginBottom: 8,
+  cardIconContainer: {
+    width: 42, height: 42, borderRadius: 21,
+    justifyContent: 'center', alignItems: 'center',
   },
-  cardValue: {
-    ...typography.headlineMd,
-    color: colors.primary,
+  cardTextContainer: { flex: 1 },
+  cardValue: { fontSize: 24, fontWeight: '700', color: theme.onSurface },
+  cardTitle: { fontSize: 13, fontWeight: '500', color: theme.onSurfaceVariant, marginTop: 2 },
+  actionRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: theme.surfaceCard, borderRadius: 12,
+    padding: 14, borderWidth: 1, borderColor: theme.outlineVariant,
   },
-  actionButton: {
-    backgroundColor: colors.primaryContainer,
-    borderRadius: borderRadius.default,
-    minHeight: spacing.touchTargetMin,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: spacing.gutter,
+  actionDisabled: { opacity: 0.6 },
+  actionIcon: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: theme.surfaceHigh,
+    justifyContent: 'center', alignItems: 'center',
   },
-  actionButtonDisabled: {
-    opacity: 0.7,
-  },
-  actionButtonText: {
-    ...typography.labelLg,
-    color: colors.onPrimary,
-  },
-  actionHint: {
-    ...typography.bodyMd,
-    color: colors.onSurfaceVariant,
-    marginTop: 6,
-  },
-});
+  actionTitle: { fontSize: 14, fontWeight: '600', color: theme.onSurface },
+  actionHint: { fontSize: 12, fontWeight: '500', color: theme.onSurfaceVariant, marginTop: 2 },
+  refreshColor: { color: theme.primaryContainer },
+  primaryColor: { color: theme.primary },
+  secondaryColor: { color: theme.secondary },
+  statusPendingColor: { color: theme.statusPending },
+  statusConfirmedColor: { color: theme.statusConfirmed },
+  statusDelayedColor: { color: theme.statusDelayed },
+  statusIgnoredColor: { color: theme.statusIgnored },
+  outlineColor: { color: theme.outline },
+  surfaceHighBg: { backgroundColor: theme.surfaceHigh },
+}));

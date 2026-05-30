@@ -1,21 +1,22 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet } from 'react-native-unistyles';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
-import { colors } from '../../constants/colors';
-import { typography, spacing, borderRadius } from '../../constants/typography';
 import { AuthStackParamList } from '../../navigation/AppNavigator';
 import { FormInput } from '../../components/FormInput';
+import { Toast } from '../../components/Toast';
 import { useLogin } from '../../hooks/useLogin';
 
 type LoginNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
 export function LoginScreen() {
   const navigation = useNavigation<LoginNavigationProp>();
-  const { control, handleSubmit, loading, onSubmit } = useLogin();
+  const { control, handleSubmit, loading, error, clearError, onSubmit } = useLogin();
 
   return (
     <View style={styles.container}>
+      <Toast visible={!!error} message={error ?? ''} type="error" onDismiss={clearError} />
       <View style={styles.header}>
         <Image
           source={require('../../../assets/images/logo.png')}
@@ -52,7 +53,7 @@ export function LoginScreen() {
           accessibilityRole="button"
         >
           {loading ? (
-            <ActivityIndicator color={colors.onPrimary} />
+            <ActivityIndicator color={styles.onPrimaryColor.color} />
           ) : (
             <Text style={styles.buttonText}>Entrar</Text>
           )}
@@ -71,11 +72,11 @@ export function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(theme => ({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundApp,
-    paddingHorizontal: spacing.marginMobile,
+    backgroundColor: theme.backgroundApp,
+    paddingHorizontal: 20,
     justifyContent: 'center',
   },
   header: {
@@ -88,17 +89,19 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   subtitle: {
-    ...typography.bodyMd,
-    color: colors.onSurfaceVariant,
+    fontSize: 14,
+    fontWeight: '400',
+    lineHeight: 20,
+    color: theme.onSurfaceVariant,
     marginTop: 8,
   },
   form: {
-    gap: spacing.stackGap,
+    gap: 16,
   },
   button: {
-    backgroundColor: colors.primaryContainer,
-    borderRadius: borderRadius.default,
-    minHeight: spacing.touchTargetMin,
+    backgroundColor: theme.primaryContainer,
+    borderRadius: 8,
+    minHeight: 48,
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
@@ -107,16 +110,23 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   buttonText: {
-    ...typography.labelLg,
-    color: colors.onPrimary,
+    fontSize: 14,
+    fontWeight: '600',
+    lineHeight: 20,
+    color: theme.onPrimary,
   },
   registerLink: {
     alignItems: 'center',
-    minHeight: spacing.touchTargetMin,
+    minHeight: 48,
     justifyContent: 'center',
   },
   registerText: {
-    ...typography.bodyMd,
-    color: colors.primaryContainer,
+    fontSize: 14,
+    fontWeight: '400',
+    lineHeight: 20,
+    color: theme.primaryContainer,
   },
-});
+  onPrimaryColor: {
+    color: theme.onPrimary,
+  },
+}));

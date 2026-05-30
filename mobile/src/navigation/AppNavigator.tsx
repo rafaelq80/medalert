@@ -1,12 +1,12 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View } from 'react-native';
+import { useUnistyles } from 'react-native-unistyles';
 import { useAuth } from '../contexts/AuthContext';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { RegisterScreen } from '../screens/auth/RegisterScreen';
 import { MainTabNavigator } from './MainTabNavigator';
 import { AdminNavigator } from './AdminNavigator';
-import { colors } from '../constants/colors';
 
 export type AuthStackParamList = {
   Login: undefined;
@@ -33,11 +33,12 @@ function AuthNavigator() {
 
 export function AppNavigator() {
   const { user, isAuthenticated, isLoading } = useAuth();
+  const { theme } = useUnistyles();
 
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.backgroundApp }}>
-        <ActivityIndicator size="large" color={colors.primaryContainer} />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.backgroundApp }}>
+        <ActivityIndicator size="large" color={theme.primaryContainer} />
       </View>
     );
   }
