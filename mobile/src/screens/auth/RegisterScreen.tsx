@@ -130,6 +130,7 @@ export function RegisterScreen() {
           name="senha"
           label="Senha *"
           placeholder="Mínimo 6 caracteres"
+          autoCapitalize="none"
           secureTextEntry
         />
 

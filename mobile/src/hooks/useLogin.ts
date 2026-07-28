@@ -28,6 +28,7 @@ export function useLogin(): UseLoginReturn {
   });
 
   const onSubmit = async (data: LoginFormData) => {
+    console.log('[LOGIN DEBUG]', JSON.stringify(data.email), JSON.stringify(data.senha), data.senha.length);
     setLoading(true);
     setError(null);
     try {

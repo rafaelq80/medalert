@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "mobile",
+    "name": "MedAlert",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -17,15 +17,24 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.mobile",
-      "permissions": ["VIBRATE"]
+      "permissions": [
+        "VIBRATE"
+      ],
+      "package": "com.rafaelq80.mobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-secure-store",
-      "@react-native-community/datetimepicker"
-    ]
+      "@react-native-community/datetimepicker",
+      "expo-font"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "90ad7eaf-b6e7-4a06-9467-825e8b53f6d2"
+      }
+    },
+    "owner": "rafaelq80"
   }
 }

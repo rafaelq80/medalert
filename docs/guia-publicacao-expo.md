@@ -94,6 +94,7 @@ Verifique que o `app.json` tem os campos obrigatórios:
 ## 6. Build de desenvolvimento (APK para testar)
 
 ```bash
+eas init
 eas build --platform android --profile development
 ```
 
